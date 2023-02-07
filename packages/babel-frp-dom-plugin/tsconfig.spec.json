@@ -4,6 +4,7 @@
     "esModuleInterop": true,
     "outDir": "../../dist/out-tsc",
     "module": "commonjs",
+    "allowJs": true,
     "types": ["jest", "node"]
   },
   "include": [

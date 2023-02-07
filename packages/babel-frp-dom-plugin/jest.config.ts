@@ -7,5 +7,6 @@ export default {
   },
   testEnvironment: 'jsdom',
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
+  watchPathIgnorePatterns: ['output.js'],
   coverageDirectory: '../../coverage/packages/babel-frp-dom-plugin',
 };

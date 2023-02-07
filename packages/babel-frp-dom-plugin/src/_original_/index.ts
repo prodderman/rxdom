@@ -1,10 +1,9 @@
-import type { PluginObj, PluginPass } from '@babel/core';
 import SyntaxJSX from '@babel/plugin-syntax-jsx';
-import { transformJSX } from './transform';
-import preprocess from './shared/preprocess';
+import { transformJSX } from './shared/transform';
 import postprocess from './shared/postprocess';
+import preprocess from './shared/preprocess';
 
-export default (): PluginObj<PluginPass> => {
+export default () => {
   return {
     name: 'JSX DOM Expressions',
     inherits: SyntaxJSX,

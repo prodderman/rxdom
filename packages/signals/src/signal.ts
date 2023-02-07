@@ -12,23 +12,22 @@ export interface Signal<T> extends Property<T> {
   readonly modify: (...updates: Update<T>[]) => void;
 }
 
-export const signal = <T>(initial: T): Signal<T> => {
-  let lastValue = initial;
+export const signal = <T>(value: T): Signal<T> => {
   const emitter = mkEmitter();
-  const get = () => lastValue;
-  const set = (value: T) => {
-    if (value !== lastValue) {
-      lastValue = value;
+  const get = () => value;
+  const set = (newValue: T) => {
+    if (value !== newValue) {
+      value = newValue;
       emitter.next(now());
     }
   };
   const modify = (...updates: Update<T>[]) => {
-    let value = lastValue;
+    let buffer = value;
     for (const update of updates) {
-      value = update(value);
+      buffer = update(value);
     }
 
-    set(value);
+    set(buffer);
   };
 
   const subscribe = (observer: Observer<Tick>) => emitter.subscribe(observer);
