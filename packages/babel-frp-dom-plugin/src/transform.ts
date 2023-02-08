@@ -1,55 +1,18 @@
 import * as t from '@babel/types';
 import type { NodePath, PluginPass } from '@babel/core';
-// import { HubInterface } from '@babel/traverse'
+import { addNamed } from '@babel/helper-module-imports';
 
-// import { transformElement as transformElementDOM } from '../dom/element';
-// import { createTemplate as createTemplateDOM } from '../dom/template';
-// import { transformElement as transformElementSSR } from '../ssr/element';
-// import { createTemplate as createTemplateSSR } from '../ssr/template';
-// import { transformElement as transformElementUniversal } from '../universal/element';
-// import { createTemplate as createTemplateUniversal } from '../universal/template';
-import {
-  getTagName,
-  isComponent,
-  isDynamic,
-  trimWhitespace,
-  transformCondition,
-  getStaticExpression,
-  escapeHTML,
-  getConfig,
-  escapeBackticks,
-} from './shared/utils';
-import { Results } from './shared/types';
+import { getTagName } from './shared/utils';
+import { Result, RuntimeFn, JSXNodePath, ImportStorage, Config } from './types';
 import { VOID_ELEMENTS } from './constants';
 
-// import transformComponent from './component';
-// import transformFragmentChildren from './fragment';
-
-type State = {
-  id: t.Identifier;
-  template: string;
-  tagName: string;
-};
-
-type Template = {
-  id: t.Identifier;
-  template: string;
-  elementCount: number;
-};
-
-export function transformJSX(
-  path: NodePath<t.JSXElement> | NodePath<t.JSXFragment>
-) {
-  const state = transformNode(path);
-  registerTemplate(path, state);
-  const template = createTemplate(path, state);
+export function transformJSX(path: JSXNodePath, state: PluginPass) {
+  const result = transformNode(path);
+  registerTemplate(path, state, result);
 
   path.replaceWith(
     t.callExpression(
-      t.memberExpression(
-        path.scope.generateUidIdentifier('_$tmpl'),
-        t.identifier('cloneNode')
-      ),
+      t.memberExpression(t.identifier('test'), t.identifier('cloneNode')),
       [t.booleanLiteral(true)]
     )
   );
@@ -57,16 +20,16 @@ export function transformJSX(
 
 export function transformNode(path: NodePath) {
   if (t.isJSXElement(path.node)) {
-    return transformElement(path as NodePath<t.JSXElement>);
+    return transformJSXElement(path as NodePath<t.JSXElement>);
   }
 
-  throw Error('unexpected element');
+  throw Error('unexpected element type');
 }
 
-function transformElement(path: NodePath<t.JSXElement>): State {
+function transformJSXElement(path: NodePath<t.JSXElement>): Result {
   const tagName = getTagName(path.node);
   const isVoidTag = VOID_ELEMENTS.includes(tagName);
-  const state: State = {
+  const state: Result = {
     id: path.scope.generateUidIdentifier('el$'),
     template: `<${tagName}`,
     tagName,
@@ -86,104 +49,55 @@ function transformElement(path: NodePath<t.JSXElement>): State {
   return state;
 }
 
-function createTemplate(path: NodePath, result: State): t.Node {
-  return t.callExpression(
-    t.arrowFunctionExpression(
-      [],
-      t.blockStatement([t.returnStatement(result.id)])
-    ),
-    []
-  );
-}
+/**
+ *
+ * Write top level jsx templates to the Program scope to append them later to the top of the file
+ */
 
-function registerTemplate(path: NodePath, state: State) {
+function registerTemplate(
+  path: JSXNodePath,
+  state: PluginPass,
+  result: Result
+) {
   const program = path.scope.getProgramParent();
-  const data = program.getData('templates') ?? [];
-  const template = t.variableDeclaration('const', [
+  const templateDecl = t.variableDeclaration('const', [
     t.variableDeclarator(
-      path.scope.generateUidIdentifier('_tmpl$'),
+      path.scope.generateUidIdentifier('$tmpl'),
       t.addComment(
-        t.callExpression(t.identifier('_template$'), [
+        t.callExpression(appendImport(path, state, 'template'), [
           t.templateLiteral(
             [
               t.templateElement(
-                { cooked: state.template, raw: state.template },
-                false
+                { cooked: result.template, raw: result.template },
+                true
               ),
             ],
             []
           ),
-          t.numericLiteral(state.template.split('<').length - 1),
+          t.numericLiteral(result.template.split('<').length - 1),
         ]),
         'leading',
         '#__PURE__'
       )
     ),
   ]);
-  data.push(template);
-  program.setData('templates', data);
+
+  const data = program.getData('templates');
+  data.unshift(templateDecl);
 }
 
-// function registerTemplate(path, results) {
-//   let decl;
-//   if (results.template.length) {
-//     let templateDef, templateId;
-//     if (!results.skipTemplate) {
-//       const templates =
-//         path.scope.getProgramParent().data.templates ||
-//         (path.scope.getProgramParent().data.templates = []);
-//       if (
-//         (templateDef = templates.find((t) => t.template === results.template))
-//       ) {
-//         templateId = templateDef.id;
-//       } else {
-//         templateId = path.scope.generateUidIdentifier('tmpl$');
-//         templates.push({
-//           id: templateId,
-//           template: results.template,
-//           elementCount: results.template.split('<').length - 1,
-//           isSVG: results.isSVG,
-//           renderer: 'dom',
-//         });
-//       }
-//     }
-//     decl = t.variableDeclarator(
-//       results.id,
-//       hydratable
-//         ? t.callExpression(
-//             registerImportMethod(
-//               path,
-//               'getNextElement',
-//               getRendererConfig(path, 'dom').moduleName
-//             ),
-//             templateId ? [templateId] : []
-//           )
-//         : results.hasCustomElement
-//         ? t.callExpression(
-//             registerImportMethod(
-//               path,
-//               'untrack',
-//               getRendererConfig(path, 'dom').moduleName
-//             ),
-//             [
-//               t.arrowFunctionExpression(
-//                 [],
-//                 t.callExpression(
-//                   t.memberExpression(
-//                     t.identifier('document'),
-//                     t.identifier('importNode')
-//                   ),
-//                   [templateId, t.booleanLiteral(true)]
-//                 )
-//               ),
-//             ]
-//           )
-//         : t.callExpression(
-//             t.memberExpression(templateId, t.identifier('cloneNode')),
-//             [t.booleanLiteral(true)]
-//           )
-//     );
-//   }
-//   results.decl.unshift(decl);
-//   results.decl = t.variableDeclaration('const', results.decl);
-// }
+function appendImport(path: JSXNodePath, state: PluginPass, fnName: RuntimeFn) {
+  const program = path.scope.getProgramParent();
+  const config = state.opts as Config;
+  const data: ImportStorage = program.getData('imports');
+
+  if (data.has(fnName)) {
+    return t.cloneNode(data.get(fnName)!, true);
+  }
+
+  const id = addNamed(path, fnName, config.moduleName, {
+    nameHint: `$${fnName}`,
+  });
+  data.set(fnName, id);
+  return id;
+}

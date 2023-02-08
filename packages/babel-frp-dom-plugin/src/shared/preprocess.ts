@@ -26,6 +26,8 @@ const JSXValidator = {
 };
 
 export default (path: NodePath<t.Program>, state: PluginPass) => {
-  // state.file.metadata.config = Object.assign({}, config, state.opts);ß
+  state.opts = Object.assign({}, config, state.opts);
+  path.scope.setData('templates', []);
+  path.scope.setData('imports', new Map());
   path.traverse(JSXValidator);
 };
