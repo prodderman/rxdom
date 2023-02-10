@@ -31,14 +31,7 @@ export type Config = {
   moduleName: string;
 };
 
-export type PrimitiveType =
-  | string
-  | number
-  | symbol
-  | bigint
-  | boolean
-  | undefined
-  | null;
+export type PrimitiveType = string | number | boolean | undefined | null;
 export type ImportStorage = Map<string, t.Identifier>;
 export type TemplateStorage = Map<string, t.Identifier>;
 

@@ -42,10 +42,7 @@ const template = (props) => {
   let childRef;
   const { content } = props;
   return (() => {
-    const _div3 = _tmpl$3.cloneNode(true),
-      _Child = _div3.firstChild,
-      _Child2 = _Child.nextSibling,
-      _Context$Consumer = _Child2.nextSibling;
+    const _div3 = _tmpl$3.cloneNode(true);
     _$createComponent(Child, {
       get children() {
         return _tmpl$4.cloneNode(true);
@@ -123,8 +120,7 @@ const template10 = (() => {
     _Link2 = _Link.nextSibling,
     _Link3 = _Link2.nextSibling,
     _Link4 = _Link3.nextSibling,
-    _Link5 = _Link4.nextSibling,
-    _Link6 = _Link5.nextSibling;
+    _Link5 = _Link4.nextSibling;
   _$createComponent(Link, {
     get children() {
       return 'new';
@@ -159,12 +155,11 @@ const template10 = (() => {
 })();
 const template11 = (() => {
   const _div12 = _tmpl$6.cloneNode(true),
-    _Link7 = _div12.firstChild,
+    _Link6 = _div12.firstChild,
+    _Link7 = _Link6.nextSibling,
     _Link8 = _Link7.nextSibling,
     _Link9 = _Link8.nextSibling,
-    _Link10 = _Link9.nextSibling,
-    _Link11 = _Link10.nextSibling,
-    _Link12 = _Link11.nextSibling;
+    _Link10 = _Link9.nextSibling;
   _$createComponent(Link, {
     get children() {
       return 'new';
@@ -199,8 +194,8 @@ const template11 = (() => {
 })();
 const template12 = (() => {
   const _div13 = _tmpl$7.cloneNode(true),
-    _Link13 = _div13.nextSibling,
-    _Link14 = _Link13.nextSibling;
+    _Link11 = _div13.nextSibling,
+    _Link12 = _Link11.nextSibling;
   _$createComponent(Link, {
     get children() {
       return 'comments';

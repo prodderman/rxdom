@@ -1,4 +1,6 @@
+import { NodePath } from '@babel/core';
 import * as t from '@babel/types';
+import { PrimitiveType } from './types';
 
 function jsxElementNameToString(
   identifier: t.JSXIdentifier | t.JSXMemberExpression | t.JSXNamespacedName
@@ -48,4 +50,61 @@ export function convertComponentIdentifier(
   }
 
   throw new Error(`Unexpected namespace for: ${node.name}`);
+}
+
+export function mkComponentProp(
+  name: string,
+  value: t.Expression,
+  isExpression: boolean
+) {
+  return isExpression
+    ? t.objectMethod(
+        'get',
+        t.stringLiteral(name),
+        [],
+        t.blockStatement([t.returnStatement(value)])
+      )
+    : t.objectProperty(t.stringLiteral(name), value);
+}
+
+export function toLiteral(value: PrimitiveType) {
+  if (typeof value === 'string') {
+    return t.stringLiteral(value);
+  }
+
+  if (typeof value === 'number') {
+    return t.numericLiteral(value);
+  }
+
+  if (typeof value === 'boolean') {
+    return t.booleanLiteral(value);
+  }
+
+  if (value === null) {
+    return t.nullLiteral();
+  }
+
+  if (typeof value === 'undefined') {
+    return t.identifier('undefined');
+  }
+
+  throw new Error(`Unexpected type ${typeof value}`);
+}
+
+export function isPrimitive(value: unknown): value is PrimitiveType {
+  const type = typeof value;
+
+  return (
+    type === 'boolean' ||
+    type === 'number' ||
+    type === 'string' ||
+    type === 'undefined' ||
+    value === null
+  );
+}
+
+export function getAttributeName<N extends t.JSXAttribute>(attr: NodePath<N>) {
+  return t.isJSXNamespacedName(attr.node.name)
+    ? `${attr.node.name.namespace.name}:${attr.node.name.name.name}`
+    : attr.node.name.name;
 }
