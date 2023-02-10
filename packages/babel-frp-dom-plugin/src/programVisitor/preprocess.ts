@@ -1,8 +1,9 @@
 import { NodePath, PluginPass } from '@babel/core';
 import * as t from '@babel/types';
-import config from '../config';
-import { isComponent } from './utils';
 import { isValidHTMLNesting } from 'validate-html-nesting';
+
+import { DEFAULT_CONFIG } from '../constants';
+import { isComponent } from '../utils';
 
 // From https://github.com/MananTank/babel-plugin-validate-jsx-nesting/blob/main/src/index.js
 const JSXValidator = {
@@ -25,9 +26,9 @@ const JSXValidator = {
   },
 };
 
-export default (path: NodePath<t.Program>, state: PluginPass) => {
-  state.opts = Object.assign({}, config, state.opts);
-  path.scope.setData('templates', []);
-  path.scope.setData('imports', new Map());
+export const preprocess = (path: NodePath<t.Program>, state: PluginPass) => {
   path.traverse(JSXValidator);
+  path.scope.setData('config', Object.assign({}, DEFAULT_CONFIG, state.opts));
+  path.scope.setData('templates', new Map());
+  path.scope.setData('imports', new Map());
 };

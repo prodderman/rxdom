@@ -1,21 +1,22 @@
-const template1 = (
-  <div>
-    <span>
-      <input />
-    </span>
-    <span>
-      <section>
-
-      </section>
-    </span>
-    <span>3</span>
-    <span>4</span>
-  </div>
-)
+// const template = (
+//   <div id="main">
+//     <style>{"div { color: red; }"}</style>
+//     <h1>Welcome</h1>
+//     <label for={"entry"}>Edit:</label>
+//     <input id="entry" type="text" />
+//     {/* Comment Node */}
+//   </div>
+// );
 
 const template2 = (
-  <div>
-    <span>1</span>
+  <div id="main">
+    {expr}
+    <style>{"div { color: red; }"}</style>
+    <h1>Welcome {expr}</h1>
+    <label for={"entry"}>Edit:</label>
+    <input id="entry" type="text" />
+    {/* Comment Node */}
+    {expr}
   </div>
-)
+);
 

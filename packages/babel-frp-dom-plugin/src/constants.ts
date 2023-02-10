@@ -1,3 +1,7 @@
+export const DEFAULT_CONFIG = {
+  moduleName: 'dom',
+};
+
 export const VOID_ELEMENTS = [
   'area',
   'base',
