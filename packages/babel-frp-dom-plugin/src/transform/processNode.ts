@@ -2,7 +2,7 @@ import { NodePath } from '@babel/core';
 import * as t from '@babel/types';
 import { JSXProcessResult, ProcessContext } from '../types';
 import { processExpressionContainer } from './processExpression';
-import { processJSXElement } from './processJSXElement';
+import { processArrayChildren, processJSXElement } from './processJSXElement';
 import { processJSXText } from './processText';
 
 export function processNode(
@@ -14,7 +14,15 @@ export function processNode(
   }
 
   if (t.isJSXFragment(path.node)) {
-    throw Error('Fragments are not implemented yet');
+    const children = processArrayChildren(path as NodePath<t.JSXFragment>);
+    return {
+      id: null,
+      template: '',
+      declarations: [],
+      expressions: [
+        children.length === 1 ? children[0] : t.arrayExpression(children),
+      ],
+    };
   }
 
   if (t.isJSXExpressionContainer(path.node)) {

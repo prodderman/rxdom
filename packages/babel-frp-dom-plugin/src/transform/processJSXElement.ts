@@ -96,7 +96,7 @@ function processComponent(
     path.node.openingElement.name
   );
 
-  const childrenResults = processComponentChildren(path);
+  const childrenResults = processArrayChildren(path);
 
   const props =
     childrenResults.length > 0
@@ -127,12 +127,12 @@ function processComponent(
       : null,
     expressions: [createComponentExpr],
     declarations: [],
-    template: !context.skipId ? '<!>' : '',
+    template: context.parentId ? '<!>' : '',
   };
 }
 
-function processComponentChildren(
-  path: NodePath<t.JSXElement>
+export function processArrayChildren(
+  path: NodePath<t.JSXElement | t.JSXFragment>
 ): t.Expression[] {
   return path
     .get('children')
