@@ -6,122 +6,212 @@ import { registerImport } from '../programVisitor';
 import {
   JSXChildren,
   ProcessContext,
-  JSXElementResult,
-  JSXChildrenResult,
+  JSXProcessResult,
+  JSXAttributesResult,
 } from '../types';
-import { getTagName } from '../utils';
+import { convertComponentIdentifier, getTagName, isComponent } from '../utils';
 import { processNode } from './processNode';
+import { processText } from './processText';
 
 export function processJSXElement(
   path: NodePath<t.JSXElement>,
   context: ProcessContext
-): JSXElementResult {
+): JSXProcessResult {
   const tagName = getTagName(path.node);
+
+  if (isComponent(tagName)) {
+    return processComponent(path, context);
+  }
+
   const isVoidTag = VOID_ELEMENTS.includes(tagName);
-  const attributes = processAttributes(path);
   const id = path.scope.generateUidIdentifierBasedOnNode(path.node, 'el$');
+  const attributesResult = processTagAttributes(path, id);
+  const attributesTemplate =
+    attributesResult.attributes.length === 0
+      ? ''
+      : ' ' + attributesResult.attributes.join(' ');
 
   if (isVoidTag) {
     return {
-      kind: 'jsx',
       id,
-      template: `<${tagName}${attributes}/>`,
-      statements: [],
+      template: `<${tagName}${attributesTemplate}/>`,
+      declarations: [],
+      expressions: attributesResult.expressions,
     };
   }
 
-  const childrenResults = processChildren(path, { parentId: id });
+  const childrenResults = processTagChildren(path, id);
 
   const childrenTemplate = childrenResults
     .map((child) => child.template)
     .join('');
 
-  const childrenStatements = childrenResults.flatMap(
-    (child) => child.statements
+  const childrenDeclarations = childrenResults.flatMap(
+    (child) => child.declarations
   );
 
-  const needToFindElement = childrenStatements.length > 0;
-  const statements = needToFindElement
+  const childrenExpressions = childrenResults.flatMap(
+    (child) => child.expressions
+  );
+
+  const needToFindElement = childrenExpressions.length > 0;
+  const declarations = needToFindElement
     ? childrenResults.reduce<{
-        statements: t.Statement[];
+        declarations: t.VariableDeclarator[];
         prevId: t.Identifier;
       }>(
         (acc, child, idx) => {
           if (child.id) {
-            acc.statements.push(
-              t.variableDeclaration('const', [
-                t.variableDeclarator(
-                  child.id,
-                  t.memberExpression(
-                    acc.prevId,
-                    t.identifier(idx === 0 ? 'firstChild' : 'nextSibling')
-                  )
-                ),
-              ])
+            acc.declarations.push(
+              t.variableDeclarator(
+                child.id,
+                t.memberExpression(
+                  acc.prevId,
+                  t.identifier(idx === 0 ? 'firstChild' : 'nextSibling')
+                )
+              )
             );
             acc.prevId = child.id;
           }
           return acc;
         },
 
-        { statements: [], prevId: id }
-      ).statements
+        { declarations: [], prevId: id }
+      ).declarations
     : [];
 
   return {
-    kind: 'jsx',
     id,
-    template: `<${tagName}${attributes}>${childrenTemplate}</${tagName}>`,
-    statements: [...statements, ...childrenStatements],
+    template: `<${tagName}${attributesTemplate}>${childrenTemplate}</${tagName}>`,
+    declarations: declarations.concat(childrenDeclarations),
+    expressions: attributesResult.expressions.concat(childrenExpressions),
   };
 }
 
-function processChildren(
+function processComponent(
   path: NodePath<t.JSXElement>,
   context: ProcessContext
-): JSXChildrenResult[] {
+): JSXProcessResult {
+  const componentName = convertComponentIdentifier(
+    path.node.openingElement.name
+  );
+
+  const childrenResults = processComponentChildren(path);
+
+  const props =
+    childrenResults.length > 0
+      ? t.objectExpression([
+          t.objectMethod(
+            'get',
+            t.stringLiteral('children'),
+            [],
+            t.blockStatement([
+              t.returnStatement(
+                childrenResults.length === 1
+                  ? childrenResults[0]
+                  : t.arrayExpression(childrenResults)
+              ),
+            ])
+          ),
+        ])
+      : t.objectExpression([]);
+
+  const createComponentExpr = t.callExpression(
+    registerImport(path, 'createComponent'),
+    [componentName, props]
+  );
+
+  return {
+    id: !context.skipId
+      ? path.scope.generateUidIdentifierBasedOnNode(path.node)
+      : null,
+    expressions: [createComponentExpr],
+    declarations: [],
+    template: !context.skipId ? '<!>' : '',
+  };
+}
+
+function processComponentChildren(
+  path: NodePath<t.JSXElement>
+): t.Expression[] {
   return path
     .get('children')
     .filter(uselessChildren)
-    .map((child, _, children) => {
-      const transformedResult = processNode(child, {
-        parentId: context.parentId,
-        skipId: children.length === 1,
-      });
-
-      const result: JSXChildrenResult = {
-        id: transformedResult.id,
-        template: transformedResult.template,
-        statements: [],
-      };
-
-      if (transformedResult.kind === 'jsx') {
-        result.statements.push(...transformedResult.statements);
+    .map((child) => {
+      if (t.isJSXText(child.node)) {
+        return t.stringLiteral(processText(child.node));
       }
 
-      if (
-        transformedResult.kind === 'expression' &&
-        context.parentId &&
-        transformedResult.expression
-      ) {
-        const needReplace = transformedResult.id ? [transformedResult.id] : [];
-        result.statements.push(
-          t.expressionStatement(
-            t.callExpression(registerImport(path, 'insert'), [
-              context.parentId,
-              transformedResult.expression,
-              ...needReplace,
-            ])
-          )
-        );
+      if (t.isJSXExpressionContainer(child.node)) {
+        return child.node.expression as t.Expression;
       }
 
-      return result;
+      if (t.isJSXSpreadChild(child.node)) {
+        return child.node.expression;
+      }
+
+      return child.node;
     });
 }
 
-function processAttributes(path: NodePath<t.JSXElement>) {
-  return '';
+function processTagChildren(
+  path: NodePath<t.JSXElement>,
+  parentId: t.Identifier
+): JSXProcessResult[] {
+  return path
+    .get('children')
+    .filter(uselessChildren)
+    .map((child, _, children) =>
+      processNode(child, {
+        parentId,
+        skipId: children.length === 1,
+      })
+    );
+}
+
+function processTagAttributes(
+  path: NodePath<t.JSXElement>,
+  elementId: t.Identifier
+): JSXAttributesResult {
+  const attributes = path.get('openingElement').get('attributes');
+
+  return attributes.reduce<JSXAttributesResult>(
+    (acc, attribute) => {
+      const node = attribute.node;
+      if (t.isJSXAttribute(node)) {
+        if (node.value === undefined) {
+          acc.attributes.push(`${node.name.name}`);
+        } else if (
+          t.isJSXExpressionContainer(node.value) &&
+          !t.isJSXEmptyExpression(node.value.expression)
+        ) {
+          const valuePath = (attribute as NodePath<t.JSXAttribute>).get(
+            'value'
+          ) as NodePath<t.JSXExpressionContainer>;
+          const evalResult = valuePath.get('expression').evaluate();
+          if (
+            evalResult.confident &&
+            (evalResult.value !== undefined || evalResult.value !== null)
+          ) {
+            acc.attributes.push(`${node.name.name}="${evalResult.value}"`);
+          } else {
+            acc.expressions.push(
+              t.callExpression(registerImport(path, 'setAttribute'), [
+                elementId,
+                t.stringLiteral(node.name.name.toString()),
+                node.value.expression,
+              ])
+            );
+          }
+        } else if (t.isStringLiteral(node.value)) {
+          acc.attributes.push(`${node.name.name}="${node.value.value}"`);
+        }
+      }
+
+      return acc;
+    },
+    { attributes: [], expressions: [] }
+  );
 }
 
 function uselessChildren(child: NodePath<JSXChildren>) {

@@ -1,34 +1,44 @@
 import * as t from '@babel/types';
-import { JSXNodePath, JSXElementResult } from '../types';
+import { registerTemplate } from '../programVisitor';
+import { JSXNodePath, JSXProcessResult } from '../types';
 
 export function createReplacementNode(
   path: JSXNodePath,
-  processResult: JSXElementResult,
-  templateId: t.Identifier
+  result: JSXProcessResult
 ): t.Node {
-  const cloneExpression = t.callExpression(
-    t.memberExpression(templateId, t.identifier('cloneNode')),
-    [t.booleanLiteral(true)]
-  );
+  if (result.id && result.template !== '') {
+    const templateId = registerTemplate(path, result.template);
 
-  console.log(path.scope.getBlockParent().generateUidIdentifier('test'));
-  // console.log(path.scope.generateUidIdentifier('test'));
-  // console.log(path.scope.generateUidIdentifier('test'));
-  if (processResult.statements.length > 0 && processResult.id) {
+    const cloneNodeExpression = t.callExpression(
+      t.memberExpression(templateId, t.identifier('cloneNode')),
+      [t.booleanLiteral(true)]
+    );
+
+    if (result.declarations.length === 0 && result.expressions.length === 0) {
+      return cloneNodeExpression;
+    }
+
     return t.callExpression(
       t.arrowFunctionExpression(
         [],
         t.blockStatement([
-          t.variableDeclaration('const', [
-            t.variableDeclarator(processResult.id, cloneExpression),
-          ]),
-          ...processResult.statements,
-          t.returnStatement(processResult.id),
+          t.variableDeclaration(
+            'const',
+            [t.variableDeclarator(result.id, cloneNodeExpression)].concat(
+              result.declarations
+            )
+          ),
+          ...result.expressions.map(t.expressionStatement),
+          t.returnStatement(result.id),
         ])
       ),
       []
     );
   }
 
-  return cloneExpression;
+  if (result.expressions.length === 1) {
+    return result.expressions[0];
+  }
+
+  return path.node;
 }

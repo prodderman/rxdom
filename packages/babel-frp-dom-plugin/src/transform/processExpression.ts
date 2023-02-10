@@ -1,46 +1,64 @@
 import { NodePath } from '@babel/core';
 import * as t from '@babel/types';
+import { registerImport } from '../programVisitor';
 
-import { JSXExpressionResult, ProcessContext } from '../types';
+import { JSXProcessResult, PrimitiveType, ProcessContext } from '../types';
 
 export function processExpressionContainer(
   path: NodePath<t.JSXExpressionContainer>,
   context: ProcessContext
-): JSXExpressionResult {
-  const expression = path.node.expression;
-  const result: JSXExpressionResult = {
-    kind: 'expression',
+): JSXProcessResult {
+  if (!context.parentId) throw Error('Impossible situation happened');
+  const value = evalJSXExpressionContainer(path.get('expression'));
+  const result: JSXProcessResult = {
     id: null,
-    expression: null,
     template: '',
+    expressions: [],
+    declarations: [],
   };
 
-  if (t.isJSXEmptyExpression(expression)) {
+  if (isPrimitive(value)) {
+    if (value === undefined || value === null) {
+      return result;
+    }
+    result.template = value.toString();
     return result;
   }
 
-  const evaluation = path.get('expression').evaluate();
-  if (evaluation.confident) {
-    if (isPrimitive(evaluation.value)) {
-      result.template = evaluation.value.toString();
-      return result;
-    }
+  const id = !context.skipId
+    ? path.scope.generateUidIdentifierBasedOnNode(path.node, 'mark')
+    : null;
 
-    if (evaluation.value === undefined || evaluation.value === null) {
-      return result;
-    }
-  }
-
-  result.id = context.skipId
-    ? null
-    : path.scope.generateUidIdentifierBasedOnNode(path.node, 'expr');
+  result.id = id;
   result.template = context.skipId ? '' : '<!>';
-  result.expression = expression;
+
+  result.expressions.push(
+    t.callExpression(registerImport(path, 'insert'), [
+      context.parentId,
+      value,
+      ...(id ? [id] : []),
+    ])
+  );
 
   return result;
 }
 
-function isPrimitive(value: any) {
+export function evalJSXExpressionContainer(
+  expression: NodePath<t.Expression | t.JSXEmptyExpression>
+): t.Expression | PrimitiveType | undefined {
+  if (t.isJSXEmptyExpression(expression.node)) {
+    return undefined;
+  }
+
+  const evaluation = expression.evaluate();
+  if (evaluation.confident) {
+    return evaluation.value;
+  }
+
+  return expression.node;
+}
+
+function isPrimitive(value: unknown): value is PrimitiveType {
   const type = typeof value;
 
   return (
@@ -48,6 +66,8 @@ function isPrimitive(value: any) {
     type === 'boolean' ||
     type === 'number' ||
     type === 'string' ||
-    type === 'symbol'
+    type === 'symbol' ||
+    type === 'undefined' ||
+    value === null
   );
 }
