@@ -1,6 +1,6 @@
 import { NodePath } from '@babel/core';
 import * as t from '@babel/types';
-import { PrimitiveType } from './types';
+import { PrimitiveType, ProcessContext } from './types';
 
 function jsxElementNameToString(
   identifier: t.JSXIdentifier | t.JSXMemberExpression | t.JSXNamespacedName
@@ -55,9 +55,9 @@ export function convertComponentIdentifier(
 export function mkComponentProp(
   name: string,
   value: t.Expression,
-  isExpression: boolean
+  lazy: boolean
 ) {
-  return isExpression
+  return lazy
     ? t.objectMethod(
         'get',
         t.stringLiteral(name),
@@ -108,3 +108,9 @@ export function getAttributeName<N extends t.JSXAttribute>(attr: NodePath<N>) {
     ? `${attr.node.name.namespace.name}:${attr.node.name.name.name}`
     : attr.node.name.name;
 }
+
+export const genId =
+  (path: NodePath, context: ProcessContext) => (placeholder: string) =>
+    !context.skipId
+      ? path.scope.generateUidIdentifierBasedOnNode(path.node, placeholder)
+      : null;

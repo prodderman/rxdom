@@ -18,7 +18,6 @@ import {
   mkComponentProp,
   toLiteral,
 } from '../utils';
-import { evalJSXExpression } from './processExpression';
 import { processNode } from './processNode';
 import { processText } from './processText';
 
@@ -27,7 +26,7 @@ export function processJSXElement(
   context: ProcessContext
 ): JSXProcessResult {
   const tagName = getTagName(path.node);
-  console.log();
+
   if (isComponent(tagName)) {
     return processComponent(path, context);
   }
@@ -177,7 +176,6 @@ function processComponentProps(
     .get('openingElement')
     .get('attributes')
     .map((attr) => {
-      attr.node;
       if (t.isJSXSpreadAttribute(attr.node)) {
         throw new Error('Spread is not implemented');
       }
@@ -227,6 +225,7 @@ function processTagChildren(
 ): JSXProcessResult[] {
   return path
     .get('children')
+    .flatMap(unwrapFragment)
     .filter(uselessChildren)
     .map((child, idx, children) => {
       return processNode(child, {
@@ -238,7 +237,7 @@ function processTagChildren(
             .findIndex(
               (child) =>
                 t.isJSXExpressionContainer(child.node) ||
-                t.isJSXElement(child.node)
+                t.isJSXSpreadChild(child.node)
             ) === -1,
       });
     });
@@ -300,4 +299,14 @@ function uselessChildren(child: NodePath<JSXChildren>) {
     (!t.isJSXText(child.node) ||
       !/^[\r\n\s]*$/.test((child.node.extra?.raw as string) ?? ''))
   );
+}
+
+function unwrapFragment(path: NodePath<JSXChildren>): NodePath<JSXChildren>[] {
+  if (t.isJSXFragment(path.node)) {
+    return (path as NodePath<t.JSXFragment>)
+      .get('children')
+      .flatMap(unwrapFragment);
+  }
+
+  return [path];
 }

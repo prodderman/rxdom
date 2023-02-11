@@ -6,6 +6,7 @@ export function createReplacementNode(
   path: JSXNodePath,
   result: JSXProcessResult
 ): t.Node {
+  console.log(result);
   if (result.id && result.template !== '') {
     const templateId = registerTemplate(path, result.template);
 
