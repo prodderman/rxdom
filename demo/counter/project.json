@@ -1,8 +1,8 @@
 {
-  "name": "demo",
+  "name": "counter",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
-  "sourceRoot": "demos/demo/src",
+  "sourceRoot": "demo/counter/src",
   "tags": [],
   "targets": {
     "build": {
@@ -12,15 +12,15 @@
       ],
       "defaultConfiguration": "production",
       "options": {
-        "outputPath": "dist/demos/demo",
+        "outputPath": "dist/demo/counter",
         "compiler": "babel",
-        "main": "demos/demo/src/main.ts",
-        "tsConfig": "demos/demo/tsconfig.app.json",
-        "webpackConfig": "demos/demo/webpack.config.js",
+        "main": "demo/counter/src/main.ts",
+        "tsConfig": "demo/counter/tsconfig.app.json",
+        "webpackConfig": "demo/counter/webpack.config.js",
         "assets": [
-          "demos/demo/src/favicon.ico"
+          "demo/counter/src/favicon.ico"
         ],
-        "index": "demos/demo/src/index.html",
+        "index": "demo/counter/src/index.html",
         "baseHref": "/",
         "scripts": []
       },
@@ -34,15 +34,15 @@
           "vendorChunk": false,
           "fileReplacements": [
             {
-              "replace": "demos/demo/src/environments/environment.ts",
-              "with": "demos/demo/src/environments/environment.prod.ts"
+              "replace": "demo/counter/src/environments/environment.ts",
+              "with": "demo/counter/src/environments/environment.prod.ts"
             }
           ]
         }
       }
     },
     "serve": {
-      "command": "webpack serve --config demos/demo/webpack.config.ts"
+      "command": "webpack serve --config demo/counter/webpack.config.ts"
     },
     "lint": {
       "executor": "@nrwl/linter:eslint",
@@ -51,7 +51,7 @@
       ],
       "options": {
         "lintFilePatterns": [
-          "demos/demo/**/*.ts"
+          "demo/counter/**/*.ts"
         ]
       }
     },
@@ -61,7 +61,7 @@
         "{workspaceRoot}/coverage/{projectRoot}"
       ],
       "options": {
-        "jestConfig": "demos/demo/jest.config.ts",
+        "jestConfig": "demo/counter/jest.config.ts",
         "passWithNoTests": true
       },
       "configurations": {
