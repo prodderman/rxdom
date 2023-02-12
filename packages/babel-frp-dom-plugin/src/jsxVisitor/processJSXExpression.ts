@@ -3,8 +3,8 @@ import * as t from '@babel/types';
 import { encode } from 'html-entities';
 import { registerImport } from '../programVisitor';
 
-import { JSXProcessResult, ProcessContext } from '../types';
-import { genId, isPrimitive } from '../utils';
+import { JSXProcessResult, PrimitiveType, ProcessContext } from '../types';
+import { genId, isExpressionPath, isPrimitive } from '../utils';
 
 export function processExpressionContainer(
   path: NodePath<t.JSXExpressionContainer>,
@@ -18,22 +18,17 @@ export function processExpressionContainer(
     expressions: [],
     declarations: [],
   };
-  const expression = path.get('expression');
-  if (t.isJSXEmptyExpression(expression.node)) {
+
+  const evalResult = evalExpression(path);
+
+  if (evalResult.type === 'void' || evalResult.type === 'empty') {
     return result;
   }
-  const evaluation = expression.evaluate();
 
-  if (evaluation.confident) {
-    if (isPrimitive(evaluation.value)) {
-      if (evaluation.value === null || evaluation.value === undefined) {
-        return result;
-      }
-
-      result.id = id('text');
-      result.template = encode(evaluation.value.toString());
-      return result;
-    }
+  if (evalResult.type === 'primitive') {
+    result.id = id('text');
+    result.template = encode(evalResult.value.toString());
+    return result;
   }
 
   result.id = id('mark');
@@ -41,10 +36,84 @@ export function processExpressionContainer(
   result.expressions.push(
     t.callExpression(registerImport(path, 'insert'), [
       context.parentId,
-      expression.node,
+      evalResult.expression,
       ...(result.id ? [result.id] : []),
     ])
   );
 
   return result;
+}
+
+type VoidEvalResult = {
+  type: 'void';
+};
+
+type EmptyResult = {
+  type: 'empty';
+  value: undefined | null;
+  expression: t.Expression;
+};
+
+type PrimitiveEvalResult = {
+  type: 'primitive';
+  value: Exclude<PrimitiveType, null | undefined>;
+  expression: t.Expression;
+};
+
+type NonPrimitiveEvalResult = {
+  type: 'non-primitive';
+  value: object;
+  expression: t.Expression;
+};
+
+type NotEvaluatedResult = {
+  type: 'expression';
+  expression: t.Expression;
+};
+
+type EvalResult =
+  | VoidEvalResult
+  | EmptyResult
+  | PrimitiveEvalResult
+  | NonPrimitiveEvalResult
+  | NotEvaluatedResult;
+
+export function evalExpression(
+  path: NodePath<t.JSXExpressionContainer>
+): EvalResult {
+  const expression = path.get('expression');
+
+  if (isExpressionPath(expression)) {
+    const evalResult = expression.evaluate();
+    if (evalResult.confident) {
+      if (isPrimitive(evalResult.value)) {
+        if (evalResult.value === undefined || evalResult.value === null) {
+          return {
+            type: 'empty',
+            value: evalResult.value,
+            expression: expression.node,
+          };
+        }
+
+        return {
+          type: 'primitive',
+          value: evalResult.value,
+          expression: expression.node,
+        };
+      }
+      return {
+        type: 'non-primitive',
+        value: expression.node,
+        expression: expression.node,
+      };
+    }
+
+    return {
+      type: 'expression',
+      value: expression.node,
+      expression: expression.node,
+    };
+  }
+
+  return { type: 'void' };
 }

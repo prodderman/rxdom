@@ -1,11 +1,5 @@
+const handler = () => console.log("hoisted delegated");
+
 const templ = (
-  <Co prop={w.w + 1}>
-    {...children}
-    asd
-  </Co>
+  <div capture:onclick={asd}></div>
 )
-
-const template3 = (
-  <div {...props} prop={asd.w}>{ }</div>
-
-);

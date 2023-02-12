@@ -3,6 +3,8 @@
   "compilerOptions": {
     "outDir": "../../dist/out-tsc",
     "declaration": true,
+    "emitDeclarationOnly": true,
+    "isolatedModules": true,
     "types": []
   },
   "include": ["src/**/*.ts", "src/index.ts", "src/_original_/dom/element.ts"],

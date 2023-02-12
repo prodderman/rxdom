@@ -5,18 +5,7 @@
   "projectType": "library",
   "targets": {
     "build": {
-      "executor": "@nrwl/js:tsc",
-      "outputs": [
-        "{options.outputPath}"
-      ],
-      "options": {
-        "outputPath": "dist/packages/babel-frp-dom-plugin",
-        "main": "packages/babel-frp-dom-plugin/src/index.ts",
-        "tsConfig": "packages/babel-frp-dom-plugin/tsconfig.lib.json",
-        "assets": [
-          "packages/babel-frp-dom-plugin/*.md"
-        ]
-      }
+      "command": "webpack --config packages/babel-frp-dom-plugin/webpack.config.ts"
     },
     "lint": {
       "executor": "@nrwl/linter:eslint",

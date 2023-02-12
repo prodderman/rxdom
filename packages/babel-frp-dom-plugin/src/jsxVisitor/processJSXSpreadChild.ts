@@ -11,7 +11,6 @@ export function processJSXSpreadChild(
 ): JSXProcessResult {
   if (!context.parentId) throw Error('Impossible situation happened');
   const id = genId(path, context)('spread');
-  console.log(context);
   return {
     id,
     template: !context.skipId ? '<!>' : '',

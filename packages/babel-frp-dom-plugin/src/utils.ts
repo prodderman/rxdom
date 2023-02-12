@@ -1,6 +1,7 @@
 import { NodePath } from '@babel/core';
 import * as t from '@babel/types';
-import { PrimitiveType, ProcessContext } from './types';
+import { decode } from 'html-entities';
+import { JSXChildren, PrimitiveType, ProcessContext } from './types';
 
 function jsxElementNameToString(
   identifier: t.JSXIdentifier | t.JSXMemberExpression | t.JSXNamespacedName
@@ -67,6 +68,69 @@ export function mkComponentProp(
     : t.objectProperty(t.stringLiteral(name), value);
 }
 
+export function uselessChildren(child: NodePath<JSXChildren>) {
+  return (
+    !(
+      t.isJSXExpressionContainer(child.node) &&
+      t.isJSXEmptyExpression(child.node.expression)
+    ) &&
+    (!t.isJSXText(child.node) ||
+      !/^[\r\n\s]*$/.test((child.node.extra?.raw as string) ?? ''))
+  );
+}
+
+export function unwrapFragment(
+  path: NodePath<JSXChildren>
+): NodePath<JSXChildren>[] {
+  if (t.isJSXFragment(path.node)) {
+    return (path as NodePath<t.JSXFragment>)
+      .get('children')
+      .flatMap(unwrapFragment);
+  }
+
+  return [path];
+}
+
+export function processArrayChildren(
+  path: NodePath<t.JSXElement | t.JSXFragment>
+): t.Expression[] {
+  return path
+    .get('children')
+    .filter(uselessChildren)
+    .map((child) => {
+      if (t.isJSXText(child.node)) {
+        return t.stringLiteral(processText(child.node));
+      }
+
+      if (t.isJSXExpressionContainer(child.node)) {
+        return child.node.expression as t.Expression;
+      }
+
+      if (t.isJSXSpreadChild(child.node)) {
+        return child.node.expression;
+      }
+
+      return child.node;
+    });
+}
+
+export function processText(text: t.JSXText): string {
+  return decode(trimWhitespace((text.extra?.raw as string) ?? ''));
+}
+
+function trimWhitespace(text: string) {
+  text = text.replace(/\r/g, '');
+  if (/\n/g.test(text)) {
+    text = text
+      .split('\n')
+      .map((t, i) => (i ? t.replace(/^\s*/g, '') : t))
+      .filter((s) => !/^\s*$/.test(s))
+      .join(' ');
+  }
+  text = text.replace(/\s+/g, ' ');
+  return text;
+}
+
 export function toLiteral(value: PrimitiveType) {
   if (typeof value === 'string') {
     return t.stringLiteral(value);
@@ -103,10 +167,12 @@ export function isPrimitive(value: unknown): value is PrimitiveType {
   );
 }
 
-export function getAttributeName<N extends t.JSXAttribute>(attr: NodePath<N>) {
+export function parseAttributeName<N extends t.JSXAttribute>(
+  attr: NodePath<N>
+): [string, string?] {
   return t.isJSXNamespacedName(attr.node.name)
-    ? `${attr.node.name.namespace.name}:${attr.node.name.name.name}`
-    : attr.node.name.name;
+    ? [attr.node.name.name.name, attr.node.name.namespace.name]
+    : [attr.node.name.name];
 }
 
 export const genId =
@@ -114,3 +180,39 @@ export const genId =
     !context.skipId
       ? path.scope.generateUidIdentifierBasedOnNode(path.node, placeholder)
       : null;
+
+export function isJSXElementPath(
+  path: NodePath
+): path is NodePath<t.JSXElement> {
+  return t.isJSXElement(path.node);
+}
+
+export function isJSXSpreadAttributePath(
+  path: NodePath
+): path is NodePath<t.JSXSpreadAttribute> {
+  return t.isJSXSpreadAttribute(path.node);
+}
+
+export function isJSXAttributePath(
+  path: NodePath
+): path is NodePath<t.JSXAttribute> {
+  return t.isJSXAttribute(path.node);
+}
+
+export function isJSXEmptyExpressionPath(
+  path: NodePath
+): path is NodePath<t.JSXEmptyExpression> {
+  return t.isJSXEmptyExpression(path.node);
+}
+
+export function isExpressionPath(
+  path: NodePath
+): path is NodePath<t.Expression> {
+  return t.isExpression(path.node);
+}
+
+export function isJSXExpressionContainerPath(
+  path: NodePath<any>
+): path is NodePath<t.JSXExpressionContainer> {
+  return t.isJSXExpressionContainer(path.node);
+}

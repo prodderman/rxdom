@@ -3,33 +3,22 @@ import * as t from '@babel/types';
 
 import { VOID_ELEMENTS } from '../constants';
 import { registerImport } from '../programVisitor';
+import { JSXProcessResult, JSXAttributesResult } from '../types';
 import {
-  JSXChildren,
-  ProcessContext,
-  JSXProcessResult,
-  JSXAttributesResult,
-} from '../types';
-import {
-  convertComponentIdentifier,
-  getAttributeName,
+  parseAttributeName,
   getTagName,
-  isComponent,
-  isPrimitive,
-  mkComponentProp,
-  toLiteral,
+  isJSXAttributePath,
+  isJSXExpressionContainerPath,
+  unwrapFragment,
+  uselessChildren,
 } from '../utils';
+import { evalExpression } from './processJSXExpression';
 import { processNode } from './processNode';
-import { processText } from './processText';
 
 export function processJSXElement(
-  path: NodePath<t.JSXElement>,
-  context: ProcessContext
+  path: NodePath<t.JSXElement>
 ): JSXProcessResult {
   const tagName = getTagName(path.node);
-
-  if (isComponent(tagName)) {
-    return processComponent(path, context);
-  }
 
   const isVoidTag = VOID_ELEMENTS.includes(tagName);
   const id = path.scope.generateUidIdentifierBasedOnNode(path.node, 'el$');
@@ -96,127 +85,41 @@ export function processJSXElement(
   };
 }
 
-function processComponent(
+function processTagAttributes(
   path: NodePath<t.JSXElement>,
-  context: ProcessContext
-): JSXProcessResult {
-  const id = !context.skipId
-    ? path.scope.generateUidIdentifierBasedOnNode(path.node)
-    : null;
+  nodeId: t.Identifier
+): JSXAttributesResult {
+  const attributes = path.get('openingElement').get('attributes');
 
-  const componentName = convertComponentIdentifier(
-    path.node.openingElement.name
-  );
+  return attributes.reduce<JSXAttributesResult>(
+    (acc, attr) => {
+      if (isJSXAttributePath(attr)) {
+        const pair = parseAttributeName(attr);
+        const value = attr.get('value');
 
-  const childrenResults = processArrayChildren(path);
-  const childrenProp =
-    childrenResults.length > 0
-      ? [
-          mkComponentProp(
-            'children',
-            childrenResults.length === 1
-              ? childrenResults[0]
-              : t.arrayExpression(childrenResults),
-            true
-          ),
-        ]
-      : [];
-
-  const props = t.objectExpression(
-    childrenProp.concat(processComponentProps(path))
-  );
-
-  const createComponentExpr = t.callExpression(
-    registerImport(path, 'createComponent'),
-    [componentName, props]
-  );
-
-  const mInsertExpr = context.parentId
-    ? t.callExpression(registerImport(path, 'insert'), [
-        context.parentId,
-        createComponentExpr,
-        ...(id ? [id] : []),
-      ])
-    : createComponentExpr;
-
-  return {
-    id,
-    expressions: [mInsertExpr],
-    declarations: [],
-    template: context.parentId && !context.skipId ? '<!>' : '',
-  };
-}
-
-export function processArrayChildren(
-  path: NodePath<t.JSXElement | t.JSXFragment>
-): t.Expression[] {
-  return path
-    .get('children')
-    .filter(uselessChildren)
-    .map((child) => {
-      if (t.isJSXText(child.node)) {
-        return t.stringLiteral(processText(child.node));
-      }
-
-      if (t.isJSXExpressionContainer(child.node)) {
-        return child.node.expression as t.Expression;
-      }
-
-      if (t.isJSXSpreadChild(child.node)) {
-        return child.node.expression;
-      }
-
-      return child.node;
-    });
-}
-function processComponentProps(
-  path: NodePath<t.JSXElement>
-): (t.ObjectMethod | t.ObjectProperty)[] {
-  return path
-    .get('openingElement')
-    .get('attributes')
-    .map((attr) => {
-      if (t.isJSXSpreadAttribute(attr.node)) {
-        throw new Error('Spread is not implemented');
-      }
-
-      const key = getAttributeName(attr as NodePath<t.JSXAttribute>);
-      const value = attr.node.value;
-
-      if (value === null || value === undefined) {
-        return mkComponentProp(key, t.booleanLiteral(true), false);
-      }
-
-      if (t.isStringLiteral(value)) {
-        return mkComponentProp(key, value, false);
-      }
-
-      if (t.isJSXExpressionContainer(value)) {
-        if (t.isJSXEmptyExpression(value.expression)) {
-          return mkComponentProp(key, t.booleanLiteral(true), false);
+        if (pair[0].startsWith('on')) {
+          const { attributes, expressions } = processAsEventHandler(
+            nodeId,
+            pair,
+            value
+          );
+          acc.attributes.push(...attributes);
+          acc.expressions.push(...expressions);
+        } else {
+          const { attributes, expressions } = processAsAttribute(
+            nodeId,
+            pair,
+            value
+          );
+          acc.attributes.push(...attributes);
+          acc.expressions.push(...expressions);
         }
-
-        const valuePath = attr.get(
-          'value'
-        ) as NodePath<t.JSXExpressionContainer>;
-        const evalResult = valuePath.get('expression').evaluate();
-        if (evalResult.confident) {
-          if (isPrimitive(evalResult.value)) {
-            return mkComponentProp(key, toLiteral(evalResult.value), false);
-          }
-
-          return mkComponentProp(key, value.expression, false);
-        }
-
-        if (t.isIdentifier(value.expression)) {
-          return mkComponentProp(key, value.expression, false);
-        }
-
-        return mkComponentProp(key, value.expression, true);
       }
 
-      return mkComponentProp(key, value, true);
-    });
+      return acc;
+    },
+    { attributes: [], expressions: [] }
+  );
 }
 
 function processTagChildren(
@@ -243,70 +146,138 @@ function processTagChildren(
     });
 }
 
-function processTagAttributes(
-  path: NodePath<t.JSXElement>,
-  elementId: t.Identifier
+function processAsEventHandler(
+  nodeId: t.Identifier,
+  [key, namespace]: [string, string?],
+  path: NodePath<
+    | t.StringLiteral
+    | t.JSXElement
+    | t.JSXFragment
+    | t.JSXExpressionContainer
+    | null
+    | undefined
+  >
 ): JSXAttributesResult {
-  const attributes = path.get('openingElement').get('attributes');
+  if (
+    isJSXExpressionContainerPath(path) &&
+    !t.isJSXEmptyExpression(path.node.expression)
+  ) {
+    const resolved = canBeResolved(path);
+    const eventName = key.substring(2).toLocaleLowerCase();
+    const capture = namespace === 'capture';
+    if (resolved) {
+      return {
+        attributes: [],
+        expressions: [
+          t.callExpression(
+            t.memberExpression(nodeId, t.identifier('addEventListener')),
+            [
+              t.stringLiteral(eventName),
+              path.node.expression,
+              t.booleanLiteral(capture),
+            ]
+          ),
+        ],
+      };
+    }
 
-  return attributes.reduce<JSXAttributesResult>(
-    (acc, attr) => {
-      if (t.isJSXAttribute(attr.node)) {
-        const value = attr.node.value;
-        const key = getAttributeName(attr as NodePath<t.JSXAttribute>);
+    if (t.isIdentifier(path.node.expression)) {
+      return {
+        attributes: [],
+        expressions: [
+          t.callExpression(registerImport(path, 'addEventListener'), [
+            t.stringLiteral(eventName),
+            path.node.expression,
+            t.booleanLiteral(capture),
+          ]),
+        ],
+      };
+    }
 
-        if (value === undefined || value === null) {
-          acc.attributes.push(key);
-        } else if (
-          t.isJSXExpressionContainer(value) &&
-          !t.isJSXEmptyExpression(value.expression)
-        ) {
-          const valuePath = attr.get(
-            'value'
-          ) as NodePath<t.JSXExpressionContainer>;
-          const evalResult = valuePath.get('expression').evaluate();
-          if (
-            evalResult.confident &&
-            (evalResult.value !== undefined || evalResult.value !== null)
-          ) {
-            acc.attributes.push(`${key}="${evalResult.value}"`);
-          } else {
-            acc.expressions.push(
-              t.callExpression(registerImport(path, 'setAttribute'), [
-                elementId,
-                t.stringLiteral(key),
-                value.expression,
-              ])
-            );
-          }
-        } else if (t.isStringLiteral(value)) {
-          acc.attributes.push(`${key}="${value.value}"`);
-        }
-      }
-
-      return acc;
-    },
-    { attributes: [], expressions: [] }
-  );
-}
-
-function uselessChildren(child: NodePath<JSXChildren>) {
-  return (
-    !(
-      t.isJSXExpressionContainer(child.node) &&
-      t.isJSXEmptyExpression(child.node.expression)
-    ) &&
-    (!t.isJSXText(child.node) ||
-      !/^[\r\n\s]*$/.test((child.node.extra?.raw as string) ?? ''))
-  );
-}
-
-function unwrapFragment(path: NodePath<JSXChildren>): NodePath<JSXChildren>[] {
-  if (t.isJSXFragment(path.node)) {
-    return (path as NodePath<t.JSXFragment>)
-      .get('children')
-      .flatMap(unwrapFragment);
+    return {
+      attributes: [],
+      expressions: [],
+    };
   }
 
-  return [path];
+  return {
+    attributes: [],
+    expressions: [],
+  };
+}
+
+function canBeResolved(path: NodePath<t.JSXExpressionContainer>) {
+  let handler = path.get('expression').node as t.Expression | null | undefined;
+  while (t.isIdentifier(handler)) {
+    const binding = path.scope.getBinding(handler.name);
+    if (binding) {
+      if (t.isVariableDeclarator(binding.path.node)) {
+        handler = binding.path.node.init;
+      } else if (t.isFunctionDeclaration(binding.path.node)) {
+        return true;
+      } else return false;
+    } else return false;
+  }
+  return t.isFunction(handler);
+}
+
+function processAsAttribute(
+  nodeId: t.Identifier,
+  [key]: [string, string?],
+  value: NodePath<
+    | t.StringLiteral
+    | t.JSXElement
+    | t.JSXFragment
+    | t.JSXExpressionContainer
+    | null
+    | undefined
+  >
+): JSXAttributesResult {
+  if (value.node === undefined || value.node === null) {
+    return {
+      attributes: [key],
+      expressions: [],
+    };
+  }
+
+  if (isJSXExpressionContainerPath(value)) {
+    const evalResult = evalExpression(value);
+
+    if (evalResult.type === 'void' || evalResult.type === 'empty') {
+      return {
+        attributes: [],
+        expressions: [],
+      };
+    }
+
+    if (evalResult.type === 'primitive') {
+      return {
+        attributes: [`${key}="${evalResult.value.toString()}"`],
+        expressions: [],
+      };
+    }
+
+    return {
+      attributes: [],
+      expressions: [
+        t.callExpression(registerImport(value, 'setAttribute'), [
+          nodeId,
+          t.stringLiteral(key),
+          evalResult.expression,
+        ]),
+      ],
+    };
+  }
+
+  if (t.isStringLiteral(value.node)) {
+    return {
+      attributes: [`${key}="${value.node.value}"`],
+      expressions: [],
+    };
+  }
+
+  return {
+    attributes: [],
+    expressions: [],
+  };
 }

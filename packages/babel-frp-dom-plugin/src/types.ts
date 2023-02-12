@@ -31,7 +31,13 @@ export type Config = {
   moduleName: string;
 };
 
-export type PrimitiveType = string | number | boolean | undefined | null;
+export type PrimitiveType =
+  | string
+  | number
+  | boolean
+  | bigint
+  | undefined
+  | null;
 export type ImportStorage = Map<string, t.Identifier>;
 export type TemplateStorage = Map<string, t.Identifier>;
 
@@ -39,4 +45,5 @@ export type RuntimeFn =
   | 'insert'
   | 'template'
   | 'createComponent'
+  | 'addEventListener'
   | 'setAttribute';

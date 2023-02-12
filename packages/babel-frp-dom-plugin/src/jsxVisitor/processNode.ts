@@ -2,16 +2,28 @@ import { NodePath } from '@babel/core';
 import * as t from '@babel/types';
 import { JSXProcessResult, ProcessContext } from '../types';
 import { processExpressionContainer } from './processJSXExpression';
-import { processArrayChildren, processJSXElement } from './processJSXElement';
+import { processJSXElement } from './processJSXElement';
 import { processJSXText } from './processText';
 import { processJSXSpreadChild } from './processJSXSpreadChild';
+import { processComponent } from './processComponent';
+import {
+  getTagName,
+  isComponent,
+  isJSXElementPath,
+  processArrayChildren,
+} from '../utils';
 
 export function processNode(
   path: NodePath,
   context: ProcessContext
 ): JSXProcessResult {
-  if (t.isJSXElement(path.node)) {
-    return processJSXElement(path as NodePath<t.JSXElement>, context);
+  if (isJSXElementPath(path)) {
+    const tagName = getTagName(path.node);
+    if (isComponent(tagName)) {
+      return processComponent(path, context);
+    }
+
+    return processJSXElement(path);
   }
 
   if (t.isJSXFragment(path.node)) {

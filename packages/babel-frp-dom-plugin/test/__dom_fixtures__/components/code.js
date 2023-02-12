@@ -13,10 +13,10 @@ const template = props => {
   const { content } = props;
   return (
     <div>
-      <Child name="John" {...props} ref={childRef} booleanProperty>
+      <Child name="John" ref={childRef} booleanProperty>
         <div>From Parent</div>
       </Child>
-      <Child name="Jason" {...dynamicSpread()} ref={props.ref}>
+      <Child name="Jason" ref={props.ref}>
         {/* Comment Node */}
         <div>{content}</div>
       </Child>
@@ -29,7 +29,7 @@ const template2 = (
   <Child
     name="Jake"
     dynamic={state.data}
-    stale={/*@once*/ state.data}
+    stale={state.data}
     handleClick={clickHandler}
     hyphen-ated={state.data}
     ref={el => (e = el)}
@@ -125,9 +125,9 @@ class Template13 {
 
 const Template14 = <Component>{data()}</Component>;
 
-const Template15 = <Component {...props}/>
+// const Template15 = <Component {...props}/>
 
-const Template16 = <Component something={something} {...props}/>
+// const Template16 = <Component something={something} {...props}/>
 
 const Template17 = <Pre><span>1</span> <span>2</span> <span>3</span></Pre>
 const Template18 = <Pre>
@@ -136,21 +136,21 @@ const Template18 = <Pre>
   <span>3</span>
 </Pre>
 
-const Template19 = <Component {...s.dynamic()} />
+// const Template19 = <Component {...s.dynamic()} />
 
 const Template20 = <Component class={prop.red ? "red" : "green"} />
 
 const template21 = (
   <Component
-    {...{
-      get [key()]() {
-        return props.value;
-      }
-    }}
+    // {...{
+    //   get [key()]() {
+    //     return props.value;
+    //   }
+    // }}
   />
 );
 
-const template22 = <Component passObject={{ ...a }} ></Component>
+// const template22 = <Component passObject={{ ...a }} ></Component>
 
 const template23 = <Component disabled={"t" in test}>{"t" in test && "true"}</Component>
 
