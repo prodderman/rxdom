@@ -15,10 +15,10 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@babel/frp-dom-plugin": ["packages/babel-frp-dom-plugin/src/index.ts"],
       "@frp-dom/runtime": ["packages/runtime/src/index.ts"],
       "@frp-dom/signals": ["packages/signals/src/index.ts"]
     }
   },
-  "exclude": ["node_modules", "tmp"]
+  "exclude": ["node_modules", "tmp"],
+  "include": ["packages/**/*.tsx", "demos"]
 }

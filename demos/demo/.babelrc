@@ -1,0 +1,4 @@
+{
+  "presets": ["@nrwl/js/babel"],
+  "plugins": [["../../dist/packages/babel-frp-dom-plugin", { "moduleName": "@frp-dom/runtime" }]]
+}
