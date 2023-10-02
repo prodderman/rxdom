@@ -10,15 +10,28 @@
     "importHelpers": true,
     "target": "es2015",
     "module": "esnext",
-    "lib": ["ES2019", "dom"],
+    "lib": [
+      "ES2019",
+      "dom"
+    ],
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@frp-dom/runtime": ["packages/runtime/src/index.ts"],
-      "@frp-dom/signals": ["packages/signals/src/index.ts"]
+      "@frp-dom/data": [
+        "dist/packages/data/src"
+      ],
+      "@frp-dom/runtime": [
+        "dist/packages/runtime/src"
+      ],
     }
   },
-  "exclude": ["node_modules", "tmp"],
-  "include": ["packages/**/*.tsx", "demo"]
+  "exclude": [
+    "node_modules",
+    "tmp"
+  ],
+  "include": [
+    "packages/**/*.tsx",
+    "demo"
+  ]
 }

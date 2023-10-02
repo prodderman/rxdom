@@ -49,6 +49,7 @@ export function processComponent(
 
   const mInsertExpr = context.parentId
     ? t.callExpression(registerImport(path, 'insert'), [
+        t.identifier('ctx'),
         context.parentId,
         createComponentExpr,
         ...(id ? [id] : []),
@@ -106,7 +107,7 @@ function processComponentProps(
           return mkComponentProp(key, value.expression, false);
         }
 
-        return mkComponentProp(key, value.expression, true);
+        return mkComponentProp(key, value.expression, false);
       }
 
       return mkComponentProp(key, value, true);

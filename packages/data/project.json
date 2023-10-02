@@ -1,7 +1,7 @@
 {
-  "name": "signals",
+  "name": "data",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "packages/signals/src",
+  "sourceRoot": "packages/data/src",
   "projectType": "library",
   "targets": {
     "build": {
@@ -10,11 +10,11 @@
         "{options.outputPath}"
       ],
       "options": {
-        "outputPath": "dist/packages/signals",
-        "main": "packages/signals/src/index.ts",
-        "tsConfig": "packages/signals/tsconfig.lib.json",
+        "outputPath": "dist/packages/data",
+        "main": "packages/data/src/index.ts",
+        "tsConfig": "packages/data/tsconfig.lib.json",
         "assets": [
-          "packages/signals/*.md"
+          "packages/data/*.md"
         ]
       }
     },
@@ -25,7 +25,7 @@
       ],
       "options": {
         "lintFilePatterns": [
-          "packages/signals/**/*.ts"
+          "packages/data/**/*.ts"
         ]
       }
     },
@@ -35,7 +35,7 @@
         "{workspaceRoot}/coverage/{projectRoot}"
       ],
       "options": {
-        "jestConfig": "packages/signals/jest.config.ts",
+        "jestConfig": "packages/data/jest.config.ts",
         "passWithNoTests": true
       },
       "configurations": {

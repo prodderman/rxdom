@@ -1,4 +1,5 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */ import { NodePath } from '@babel/core';
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { NodePath } from '@babel/core';
 import { addNamed } from '@babel/helper-module-imports';
 import * as t from '@babel/types';
 
@@ -30,7 +31,6 @@ export function registerTemplate(
             [t.templateElement({ cooked: template, raw: template }, true)],
             []
           ),
-          t.numericLiteral(template.split('<').length - 1),
         ]),
         'leading',
         '#__PURE__'

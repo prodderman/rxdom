@@ -1,11 +1,3 @@
-// const { composePlugins, withNx } = require('@nrwl/webpack');
-
-// // Nx plugins for webpack.
-// module.exports = composePlugins(withNx(), (config) => {
-//   config.entry
-//   return config;
-// });
-
 import path from 'path';
 import TsconfigPathsPlugin from 'tsconfig-paths-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
@@ -78,6 +70,7 @@ const config: Configuration = {
     plugins: [
       new TsconfigPathsPlugin({
         configFile: path.resolve(__dirname, 'tsconfig.app.json'),
+        extensions: ['.js', '.d.ts'],
       }),
     ],
   },

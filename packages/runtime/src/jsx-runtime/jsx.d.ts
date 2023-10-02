@@ -1,8 +1,9 @@
-import { Property } from '@atom/core';
+/* eslint-disable */
+import { Property } from '@frp-dom/data';
 
 type DOMElement = Element;
 
-type Propertified<T> = {
+type Dynamic<T> = {
   [P in keyof T]: T[P] extends (...args: any[]) => any
     ? T[P]
     : P extends 'children'
@@ -10,14 +11,25 @@ type Propertified<T> = {
     : T[P] | Property<T[P]>;
 };
 
-type PropertyMaybe<T = unknown> = T | Property<T>;
+type DynamicMaybe<T = unknown> = T | Property<T>;
 
 export namespace JSX {
-  type Element = PropertyMaybe<
-    Node | ArrayElement | string | number | boolean | null | undefined
+  type Element = DynamicMaybe<
+    | Node
+    | ArrayElement
+    | FnElement
+    | string
+    | number
+    | boolean
+    | null
+    | undefined
   >;
 
-  interface ArrayElement extends Array<Element> {}
+  type ArrayElement = Array<Element>;
+
+  interface FnElement {
+    (context: any): Element;
+  }
 
   interface AriaAttributes {
     /** Identifies the currently active element when DOM focus is on a composite widget, textbox, group, or application. */
@@ -326,8 +338,67 @@ export namespace JSX {
   }
 
   interface HTMLAttributes<T> extends AriaAttributes, DOMAttributes<T> {
+    accessKey?: string;
     class?: string | undefined;
-    role?: AriaRole | undefined;
+    contenteditable?: boolean | 'inherit';
+    contextmenu?: string;
+    dir?: HTMLDir;
+    draggable?: boolean | 'false' | 'true';
+    hidden?: boolean | 'hidden' | 'until-found';
+    id?: string;
+    inert?: boolean;
+    lang?: string;
+    spellcheck?: boolean;
+    style?: CSSProperties | string;
+    tabindex?: number | string;
+    title?: string;
+    translate?: 'yes' | 'no';
+    about?: string;
+    datatype?: string;
+    inlist?: any;
+    prefix?: string;
+    property?: string;
+    resource?: string;
+    typeof?: string;
+    vocab?: string;
+    autocapitalize?: HTMLAutocapitalize;
+    slot?: string;
+    color?: string;
+    itemprop?: string;
+    itemscope?: boolean;
+    itemtype?: string;
+    itemid?: string;
+    itemref?: string;
+    part?: string;
+    exportparts?: string;
+    inputmode?:
+      | 'none'
+      | 'text'
+      | 'tel'
+      | 'url'
+      | 'email'
+      | 'numeric'
+      | 'decimal'
+      | 'search';
+    contentEditable?: boolean | 'inherit';
+    contextMenu?: string;
+    tabIndex?: number | string;
+    autoCapitalize?: HTMLAutocapitalize;
+    itemProp?: string;
+    itemScope?: boolean;
+    itemType?: string;
+    itemId?: string;
+    itemRef?: string;
+    exportParts?: string;
+    inputMode?:
+      | 'none'
+      | 'text'
+      | 'tel'
+      | 'url'
+      | 'email'
+      | 'numeric'
+      | 'decimal'
+      | 'search';
   }
 
   interface AnchorHTMLAttributes<T> extends HTMLAttributes<T> {
@@ -344,7 +415,7 @@ export namespace JSX {
   }
 
   interface HTMLElementTags {
-    a: Propertified<AnchorHTMLAttributes<HTMLDivElement>>;
+    a: Dynamic<AnchorHTMLAttributes<HTMLDivElement>>;
     abbr: {};
     address: {};
     area: {};
@@ -372,7 +443,7 @@ export namespace JSX {
     details: {};
     dfn: {};
     dialog: {};
-    div: Propertified<HTMLAttributes<HTMLDivElement>>;
+    div: Dynamic<HTMLAttributes<HTMLDivElement>>;
     dl: {};
     dt: {};
     em: {};
@@ -432,7 +503,7 @@ export namespace JSX {
     slot: {};
     small: {};
     source: {};
-    span: Propertified<HTMLAttributes<HTMLSpanElement>>;
+    span: Dynamic<HTMLAttributes<HTMLSpanElement>>;
     strong: {};
     style: {};
     sub: {};
@@ -440,15 +511,15 @@ export namespace JSX {
     sup: {};
     table: {};
     tbody: {};
-    td: Propertified<HTMLAttributes<HTMLTableCellElement>>;
+    td: Dynamic<HTMLAttributes<HTMLTableCellElement>>;
     template: {};
     textarea: {};
     tfoot: {};
     th: {};
     thead: {};
     time: {};
-    title: Propertified<HTMLAttributes<HTMLTitleElement>>;
-    tr: Propertified<HTMLAttributes<HTMLTableRowElement>>;
+    title: Dynamic<HTMLAttributes<HTMLTitleElement>>;
+    tr: Dynamic<HTMLAttributes<HTMLTableRowElement>>;
     track: {};
     u: {};
     ul: {};

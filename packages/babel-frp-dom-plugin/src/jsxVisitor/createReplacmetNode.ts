@@ -9,30 +9,24 @@ export function createReplacementNode(
   if (result.id && result.template !== '') {
     const templateId = registerTemplate(path, result.template);
 
-    const cloneNodeExpression = t.callExpression(
-      t.memberExpression(templateId, t.identifier('cloneNode')),
-      [t.booleanLiteral(true)]
-    );
+    const cloneNodeExpression = t.callExpression(templateId, []);
 
     if (result.declarations.length === 0 && result.expressions.length === 0) {
       return cloneNodeExpression;
     }
 
-    return t.callExpression(
-      t.arrowFunctionExpression(
-        [],
-        t.blockStatement([
-          t.variableDeclaration(
-            'const',
-            [t.variableDeclarator(result.id, cloneNodeExpression)].concat(
-              result.declarations
-            )
-          ),
-          ...result.expressions.map(t.expressionStatement),
-          t.returnStatement(result.id),
-        ])
-      ),
-      []
+    return t.arrowFunctionExpression(
+      [t.identifier('ctx')],
+      t.blockStatement([
+        t.variableDeclaration(
+          'const',
+          [t.variableDeclarator(result.id, cloneNodeExpression)].concat(
+            result.declarations
+          )
+        ),
+        ...result.expressions.map(t.expressionStatement),
+        t.returnStatement(result.id),
+      ])
     );
   }
 

@@ -3,9 +3,13 @@
   "compilerOptions": {
     "esModuleInterop": true,
     "outDir": "../../dist/out-tsc",
+    "allowSyntheticDefaultImports": true,
     "module": "commonjs",
     "allowJs": true,
-    "types": ["jest", "node"]
+    "types": [
+      "jest",
+      "node"
+    ]
   },
   "include": [
     "jest.config.ts",

@@ -35,6 +35,7 @@ export function processExpressionContainer(
   result.template = context.skipId ? '' : '<!>';
   result.expressions.push(
     t.callExpression(registerImport(path, 'insert'), [
+      t.identifier('ctx'),
       context.parentId,
       evalResult.expression,
       ...(result.id ? [result.id] : []),

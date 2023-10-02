@@ -133,15 +133,7 @@ function processTagChildren(
     .map((child, idx, children) => {
       return processNode(child, {
         parentId,
-        skipId:
-          children.length === 1 ||
-          children
-            .slice(idx)
-            .findIndex(
-              (child) =>
-                t.isJSXExpressionContainer(child.node) ||
-                t.isJSXSpreadChild(child.node)
-            ) === -1,
+        skipId: children.length === 1,
       });
     });
 }
@@ -186,6 +178,7 @@ function processAsEventHandler(
         attributes: [],
         expressions: [
           t.callExpression(registerImport(path, 'addEventListener'), [
+            nodeId,
             t.stringLiteral(eventName),
             path.node.expression,
             t.booleanLiteral(capture),
