@@ -7,8 +7,7 @@
   "dependencies": {
     "@swc/helpers": "~0.4.11",
     "core-js": "^3.6.5",
-    "regenerator-runtime": "0.13.7",
-    "tslib": "^2.3.0"
+    "regenerator-runtime": "0.13.7"
   },
   "devDependencies": {
     "@babel/cli": "^7.20.7",
@@ -59,6 +58,7 @@
     "ts-loader": "^9.4.2",
     "ts-node": "10.9.1",
     "tsconfig-paths-webpack-plugin": "^4.0.0",
+    "tslib": "^2.6.2",
     "typescript": "~4.8.2",
     "validate-html-nesting": "^1.2.1",
     "webpack": "^5.75.0",

@@ -1,39 +1,30 @@
-import { Observable, Observer, Teardown } from '../observable';
+import { Subscripable, Observer, Meta, PropertyMeta } from '@frp-dom/reactive-core';
 import { scheduler } from '../scheduler';
 
-export interface Subject<A> extends Observable<A>, Observer<A> {
-  observed: boolean;
-  observers: number;
-  name: string;
-}
+export interface Subject<A>
+  extends Subscripable<A>,
+    Observer<A>,
+    Meta<PropertyMeta> {}
 
 export function create<A = void>(name = 'subject'): Subject<A> {
-  const listeners = new Map<Observer<A>, Teardown>();
+  const listeners = new Set<Observer<A>>();
   const pendingAdditions = new Set<Observer<A>>();
   let lastTick = -1;
   let isNotifying = false;
 
   return {
-    name,
-    get observed() {
-      return listeners.size > 0;
-    },
-    get observers() {
-      return listeners.size;
-    },
     next(value, ...extra) {
       scheduler.schedule(() => {
         isNotifying = true;
         if (listeners.size > 0) {
-          for (const [listener, teardown] of listeners) {
-            teardown?.();
-            listeners.set(listener, listener.next(value, ...extra));
+          for (const listener of listeners) {
+            listener.next(value, ...extra);
           }
         }
         isNotifying = false;
 
         if (pendingAdditions.size > 0) {
-          for (const addition of pendingAdditions) listeners.set(addition);
+          for (const addition of pendingAdditions) listeners.add(addition);
           pendingAdditions.clear();
         }
       }, lastTick);
@@ -43,15 +34,20 @@ export function create<A = void>(name = 'subject'): Subject<A> {
       if (isNotifying) {
         pendingAdditions.add(listener);
       } else {
-        listeners.set(listener);
+        listeners.add(listener);
       }
 
       return {
         unsubscribe() {
           pendingAdditions.delete(listener);
-          listeners.get(listener)?.call(undefined);
           listeners.delete(listener);
         },
+      };
+    },
+    get meta() {
+      return {
+        name,
+        observers: listeners.size,
       };
     },
   };

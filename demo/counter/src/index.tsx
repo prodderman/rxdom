@@ -2,12 +2,14 @@ import { render } from '@frp-dom/runtime';
 import { Atom } from '@frp-dom/data';
 
 const root = document.getElementById('root');
-const array1 = Atom.new('array1', [1, 2, 3, 4]);
-const array2 = Atom.new('array2', ['a', 'b', array1, 'c', 'd']);
-window.atom1 = array1;
-window.atom2 = array2;
+const atomChild1 = Atom.new<(string | number)[]>(['child ', 'foo']);
+const atomChild2 = Atom.new<(string | number)[]>(['child ', 'bar']);
+const parentAtom = Atom.new(['text ', atomChild2]);
+window.atomChild1 = atomChild1;
+window.atomChild2 = atomChild2;
+window.parentAtom = parentAtom;
 const App = () => {
-  return <main>{array2}</main>;
+  return <main>{parentAtom}</main>;
 };
 
 render(<App />, root);

@@ -17,9 +17,6 @@ importers:
       regenerator-runtime:
         specifier: 0.13.7
         version: 0.13.7
-      tslib:
-        specifier: ^2.3.0
-        version: 2.6.2
     devDependencies:
       '@babel/cli':
         specifier: ^7.20.7
@@ -165,6 +162,9 @@ importers:
       tsconfig-paths-webpack-plugin:
         specifier: ^4.0.0
         version: 4.1.0
+      tslib:
+        specifier: ^2.6.2
+        version: 2.6.2
       typescript:
         specifier: ~4.8.2
         version: 4.8.4
@@ -182,6 +182,8 @@ importers:
         version: 4.15.1(webpack-cli@5.1.4)(webpack@5.88.2)
 
   packages/babel-frp-dom-plugin: {}
+
+  packages/reactive-core: {}
 
   packages/runtime: {}
 

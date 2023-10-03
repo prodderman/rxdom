@@ -70,7 +70,7 @@ const config: Configuration = {
     plugins: [
       new TsconfigPathsPlugin({
         configFile: path.resolve(__dirname, 'tsconfig.app.json'),
-        extensions: ['.js', '.d.ts'],
+        extensions: ['.js', '.ts', '.d.ts'],
       }),
     ],
   },

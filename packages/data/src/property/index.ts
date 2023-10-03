@@ -1,31 +1,12 @@
-import { Observable, Observer, Subscription } from '../observable';
+import {
+  $,
+  type Property,
+  type SubscriptionLike,
+  type Observer,
+  type PropertyMeta,
+} from '@frp-dom/reactive-core';
 import { Subject } from '../subject';
-
-export const propertySymbol = Symbol('property');
-
-export interface Property<A> extends Observable<A> {
-  get: () => A;
-  name: string;
-  observers: number;
-  [propertySymbol]: void;
-}
-
-function from<A>(
-  name: string,
-  get: () => A,
-  getObservers: () => number,
-  subscribe: (observer: Observer<A>) => Subscription
-): Property<A> {
-  return {
-    name,
-    get observers() {
-      return getObservers();
-    },
-    get,
-    subscribe,
-    [propertySymbol]: void 0,
-  };
-}
+import { merge } from '../observable';
 
 export type PropertyValue<Target> = Target extends Property<infer A>
   ? A
@@ -35,13 +16,16 @@ export type MapPropertiesToValues<Target extends Property<unknown>[]> = {
   [Index in keyof Target]: PropertyValue<Target[Index]>;
 };
 
-function map<A, B>(property: Property<A>, project: (a: A) => B): Property<B>;
-function map<A, B>(
+export function map<A, B>(
+  property: Property<A>,
+  project: (a: A) => B
+): Property<B>;
+export function map<A, B>(
   name: string,
   property: Property<A>,
   project: (a: A) => B
 ): Property<B>;
-function map<A, B>(...args: unknown[]): Property<B> {
+export function map<A, B>(...args: unknown[]): Property<B> {
   const t = typeof args[0] === 'string';
   const name = t ? (args[0] as string) : 'anonymous';
   const target = (t ? args[1] : args[0]) as Property<A>;
@@ -65,10 +49,15 @@ function map<A, B>(...args: unknown[]): Property<B> {
     return subscription;
   };
 
-  return from(name, get, () => target.observers, subscribe);
+  const getMeta = (): PropertyMeta => ({
+    name,
+    observers: target.meta.observers,
+  });
+
+  return $(get, subscribe, getMeta);
 }
 
-const combine = <Properties extends Property<unknown>[], Result>(
+export const combine = <Properties extends Property<unknown>[], Result>(
   ...args: [
     string,
     ...Properties,
@@ -81,10 +70,10 @@ const combine = <Properties extends Property<unknown>[], Result>(
   ) => Result;
   const properties: Properties = args.slice(1, args.length - 1) as never;
   const subject = Subject.new<Result>(name);
-  const merged = Observable.merge(properties);
+  const merged = merge(properties);
   const get = memoizePropertiesProject(project, properties);
 
-  let outerSubscription: Subscription | undefined;
+  let outerSubscription: SubscriptionLike | undefined;
   let lastValue: Result | undefined = undefined;
 
   const observer: Observer<unknown> = {
@@ -98,16 +87,16 @@ const combine = <Properties extends Property<unknown>[], Result>(
   };
 
   const outerDisposer = () => {
-    if (!subject.observed && outerSubscription) {
+    if (subject.meta.observers === 0 && outerSubscription) {
       outerSubscription.unsubscribe();
       outerSubscription = undefined;
     }
   };
 
-  const subscribe = (listener: Observer<Result>): Subscription => {
+  const subscribe = (listener: Observer<Result>): SubscriptionLike => {
     lastValue = get();
     const inner = subject.subscribe(listener);
-    if (subject.observed && !outerSubscription) {
+    if (subject.meta.observers > 0 && !outerSubscription) {
       outerSubscription = merged.subscribe(observer);
     }
     return {
@@ -118,7 +107,12 @@ const combine = <Properties extends Property<unknown>[], Result>(
     };
   };
 
-  return from(name, get, () => subject.observers, subscribe);
+  const getMeta = (): PropertyMeta => ({
+    name,
+    observers: subject.meta.observers,
+  });
+
+  return $(get, subscribe, getMeta);
 };
 
 function memoizePropertiesProject<R>(
@@ -164,13 +158,3 @@ function memoizePropertyProject<A, R>(
     return lastResult;
   };
 }
-
-const is = (entity: unknown): entity is Property<unknown> =>
-  typeof entity === 'object' && entity !== null && propertySymbol in entity;
-
-export const Property = {
-  from,
-  combine,
-  map,
-  is,
-};

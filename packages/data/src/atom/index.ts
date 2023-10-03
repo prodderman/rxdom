@@ -1,4 +1,4 @@
-import { Property } from '../property';
+import { Property, $, PropertyMeta } from '@frp-dom/reactive-core';
 import { Subject } from '../subject';
 
 export interface Atom<A> extends Property<A> {
@@ -7,8 +7,8 @@ export interface Atom<A> extends Property<A> {
 }
 
 export function create<A>(
-  name: string,
   value: A,
+  name = 'anonym atom',
   compare: (a: A, b: A) => boolean = Object.is
 ): Atom<A> {
   const subject = Subject.new<A>(name);
@@ -26,11 +26,12 @@ export function create<A>(
 
   const get = () => value;
 
-  return {
-    set,
-    modify,
-    ...Property.from(name, get, () => subject.observers, subject.subscribe),
-  };
+  const getMeta = (): PropertyMeta => ({
+    name,
+    observers: subject.meta.observers,
+  });
+
+  return Object.assign($(get, subject.subscribe, getMeta), { set, modify });
 }
 
 export const Atom = {

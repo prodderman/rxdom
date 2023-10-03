@@ -1,19 +1,13 @@
-import { Context, newContext } from './context';
-import { insert } from './runtime';
+import { Atom } from '@frp-dom/data';
+import { insert, template, newContext } from './runtime';
 
 describe('runtime', () => {
+  const container = template('<div></div>');
+
   describe('static insert', () => {
-    const container = document.createElement('div');
-
-    const insertWrapper = (context: Context, child: any): Element => {
-      const parent = container.cloneNode(true) as ParentNode;
-      insert(context, parent, child);
-      return parent as Element;
-    };
-
     it('should append strings, numbers, bigints and symbols', () => {
       const context = newContext();
-      const parent = container.cloneNode(true) as Element;
+      const parent = container();
       insert(context, parent, 'text');
       expect(parent.childNodes.length).toBe(1);
       expect(parent.innerHTML).toBe('text');
@@ -33,29 +27,31 @@ describe('runtime', () => {
 
     it('should replace a single node', () => {
       const context = newContext();
-      const parent = container.cloneNode(true) as Element;
-      const current = parent.insertBefore(document.createElement('div'), null);
-      expect(parent.childNodes.length).toBe(1);
-      expect(parent.innerHTML).toBe('<div></div>');
-      insert(context, parent, 1, current);
-      expect(parent.innerHTML).toBe('1');
+      const parent = container();
+      const current = document.createElement('div');
+      parent.replaceChildren(current);
+
+      insert(context, parent, 42, current);
+      expect(parent.innerHTML).toBe('42');
       expect(parent.childNodes.length).toBe(1);
     });
 
     it(`should mutate the node's text if it's a text node`, () => {
       const context = newContext();
-      const parent = container.cloneNode(true) as Element;
-      const textNode = document.createElement('text');
-      const current = parent.insertBefore(textNode, null);
-      const result = insert(context, parent, 1, current);
-      expect(parent.innerHTML).toBe('1');
-      expect(parent.firstChild).toBe(result);
+      const parent = container();
+      const current = document.createTextNode('text');
+      parent.replaceChildren(current);
+
+      const result = insert(context, parent, 42, current);
+      expect(parent.innerHTML).toBe('42');
+      expect(current).toBe(result);
+      expect(parent.firstChild).toBe(current);
       expect(parent.childNodes.length).toBe(1);
     });
 
     it('should replace multiple nodes', () => {
       const context = newContext();
-      const parent = container.cloneNode(true) as Element;
+      const parent = container();
       const current = [
         document.createElement('div'),
         document.createElement('div'),
@@ -63,7 +59,6 @@ describe('runtime', () => {
       ];
       parent.append(...current);
 
-      expect(parent.innerHTML).toBe('<div></div><div></div><div></div>');
       const result = insert(context, parent, 42, current);
       expect(parent.childNodes.length).toBe(1);
       expect(parent.firstChild).toBe(result);
@@ -72,7 +67,7 @@ describe('runtime', () => {
 
     it(`should replace multiple nodes and mutate the first node's text if it is a text node`, () => {
       const context = newContext();
-      const parent = container.cloneNode(true) as Element;
+      const parent = container();
       const current = [
         document.createTextNode('text'),
         document.createElement('div'),
@@ -87,35 +82,36 @@ describe('runtime', () => {
       expect(parent.innerHTML).toBe('42');
     });
 
-    it('should insert nothing for null, undefined and boolean', () => {
+    it('should append empty text node for null, undefined and boolean', () => {
       const context = newContext();
-      const nodeNull = insertWrapper(context, null);
-      expect(nodeNull.childNodes.length).toBe(1);
-      expect(nodeNull.innerHTML).toBe('');
+      const parent = container();
 
-      const nodeUndefined = insertWrapper(context, undefined);
-      expect(nodeUndefined.childNodes.length).toBe(1);
-      expect(nodeUndefined.innerHTML).toBe('');
+      insert(context, parent, null);
+      expect(parent.childNodes.length).toBe(1);
+      expect(parent.innerHTML).toBe('');
 
-      const nodeTrue = insertWrapper(context, true);
-      expect(nodeTrue.childNodes.length).toBe(1);
-      expect(nodeTrue.innerHTML).toBe('');
+      insert(context, parent, undefined);
+      expect(parent.childNodes.length).toBe(2);
+      expect(parent.innerHTML).toBe('');
 
-      const nodeFalse = insertWrapper(context, false);
-      expect(nodeFalse.childNodes.length).toBe(1);
-      expect(nodeFalse.innerHTML).toBe('');
+      insert(context, parent, true);
+      expect(parent.childNodes.length).toBe(3);
+      expect(parent.innerHTML).toBe('');
+
+      insert(context, parent, false);
+      expect(parent.childNodes.length).toBe(4);
+      expect(parent.innerHTML).toBe('');
     });
 
-    it('should remove all previous nodes for null, undefined and boolean', () => {
+    it('should replace all previous nodes with empty text node for null, undefined and boolean', () => {
       const context = newContext();
-      const parent = container.cloneNode(true) as Element;
+      const parent = container();
       const current = [
         document.createTextNode('text'),
         document.createElement('div'),
         document.createElement('span'),
       ];
       parent.append(...current);
-      expect(parent.innerHTML).toBe('text<div></div><span></span>');
 
       const result = insert(context, parent, null, current);
       expect(parent.childNodes.length).toBe(1);
@@ -123,19 +119,30 @@ describe('runtime', () => {
       expect(parent.innerHTML).toBe('');
     });
 
-    it('should append node', () => {
+    it('should append nodes', () => {
       const context = newContext();
-      const node = insertWrapper(context, document.createElement('div'));
-      expect(node.childNodes.length).toBe(1);
-      expect(node.innerHTML).toBe('<div></div>');
+      const parent = container();
+
+      const node1 = document.createElement('div');
+      const result1 = insert(context, parent, node1);
+      expect(parent.childNodes.length).toBe(1);
+      expect(parent.firstChild).toBe(node1);
+      expect(result1).toBe(node1);
+      expect(parent.innerHTML).toBe('<div></div>');
+
+      const node2 = document.createElement('span');
+      const result2 = insert(context, parent, node2);
+      expect(parent.childNodes.length).toBe(2);
+      expect(parent.firstChild?.nextSibling).toBe(node2);
+      expect(result2).toBe(node2);
+      expect(parent.innerHTML).toBe('<div></div><span></span>');
     });
 
-    it('should replace node', () => {
+    it('should replace current node', () => {
       const context = newContext();
-      const parent = container.cloneNode(true) as Element;
+      const parent = container();
       const current = document.createElement('div');
       parent.append(current);
-      expect(parent.innerHTML).toBe('<div></div>');
 
       const newNode = document.createElement('span');
       const result = insert(context, parent, newNode, current);
@@ -144,9 +151,32 @@ describe('runtime', () => {
       expect(parent.innerHTML).toBe('<span></span>');
     });
 
+    it('should append multiple nodes', () => {
+      const context = newContext();
+      const parent = container();
+
+      const toInsert1 = [
+        42,
+        document.createElement('div'),
+        document.createElement('span'),
+      ];
+
+      insert(context, parent, toInsert1);
+      expect(parent.childNodes.length).toBe(3);
+      expect(parent.innerHTML).toBe('42<div></div><span></span>');
+
+      const toInsert2 = [document.createElement('section'), 'text'];
+
+      insert(context, parent, toInsert2);
+      expect(parent.childNodes.length).toBe(5);
+      expect(parent.innerHTML).toBe(
+        '42<div></div><span></span><section></section>text'
+      );
+    });
+
     it('should replace multiple nodes', () => {
       const context = newContext();
-      const parent = container.cloneNode(true) as Element;
+      const parent = container();
       const current = [
         document.createTextNode('text'),
         document.createElement('div'),
@@ -164,20 +194,22 @@ describe('runtime', () => {
 
     it('should recursively evaluate all functions and insert the result of the last one', () => {
       const context = newContext();
+      const parent = container();
       const nestedFn = jest.fn(() => document.createElement('div'));
       const fn = jest.fn(() => nestedFn);
-      const node = insertWrapper(context, fn);
-      expect(node.childNodes.length).toBe(1);
-      expect(node.innerHTML).toBe('<div></div>');
+
+      const result = insert(context, parent, fn);
+      expect(parent.childNodes.length).toBe(1);
+      expect(parent.innerHTML).toBe('<div></div>');
       expect(nestedFn).toHaveBeenCalledTimes(1);
       expect(nestedFn).toHaveBeenCalledWith(context);
       expect(fn).toHaveBeenCalledTimes(1);
       expect(fn).toHaveBeenCalledWith(context);
     });
 
-    it('should normalize and insert arrays', () => {
+    it('should normalize and append arrays', () => {
       const context = newContext();
-      const parent = container.cloneNode(true) as Element;
+      const parent = container();
       const toInsert1 = [
         true,
         document.createElement('div'),
@@ -203,6 +235,14 @@ describe('runtime', () => {
         document.createTextNode('-text 1'),
         document.createTextNode('-text 2'),
       ];
+
+      const result1 = insert(context, parent, toInsert1);
+      expect(parent.childNodes.length).toBe(expectedNResult1.length);
+      expect(result1).toStrictEqual(expectedNResult1);
+      expect(parent.innerHTML).toBe(
+        '<div></div><section></section>-inner text 1-text 1-text 2'
+      );
+
       const expectedNResult2 = [
         document.createElement('span'),
         document.createElement('strong'),
@@ -211,12 +251,10 @@ describe('runtime', () => {
         document.createTextNode('42'),
       ];
 
-      const result1 = insert(context, parent, toInsert1);
       const result2 = insert(context, parent, toInsert2);
       expect(parent.childNodes.length).toBe(
         expectedNResult1.length + expectedNResult2.length
       );
-      expect(result1).toStrictEqual(expectedNResult1);
       expect(result2).toStrictEqual(expectedNResult2);
       expect(parent.innerHTML).toBe(
         '<div></div><section></section>-inner text 1-text 1-text 2<span></span><strong></strong>-inner text 24242'
@@ -225,7 +263,7 @@ describe('runtime', () => {
 
     it('should normalize and replace current node with an incoming array', () => {
       const context = newContext();
-      const parent = container.cloneNode(true) as Element;
+      const parent = container();
       const current = document.createElement('div');
       parent.append(current);
       const toInsert = [
@@ -256,9 +294,51 @@ describe('runtime', () => {
       );
     });
 
-    it('should insert nothing if the normalized array is empty', () => {
+    it('should normalize and replace multiple current nodes with an incoming array', () => {
       const context = newContext();
-      const parent = container.cloneNode(true) as Element;
+      const parent = container();
+      const current = [
+        document.createElement('div'),
+        document.createElement('section'),
+        document.createElement('span'),
+      ];
+      parent.append(...current);
+
+      const toInsert = [
+        document.createElement('span'),
+        document.createElement('section'),
+        document.createElement('div'),
+      ];
+
+      const result = insert(context, parent, toInsert, current);
+      expect(parent.childNodes.length).toBe(toInsert.length);
+      toInsert.forEach((element, i) => expect(element).toBe(result[i]));
+      expect(parent.innerHTML).toBe(
+        '<span></span><section></section><div></div>'
+      );
+    });
+
+    it('should normalize and mutate multiple current text nodes with an incoming array', () => {
+      const context = newContext();
+      const parent = container();
+      const current = [
+        document.createTextNode('text 1'),
+        document.createTextNode('text 2'),
+        document.createTextNode('text 3'),
+      ];
+      parent.append(...current);
+
+      const toInsert = [42, 'new text', null];
+
+      const result: any[] = insert(context, parent, toInsert, current);
+      expect(parent.childNodes.length).toBe(2);
+      result.forEach((element, i) => expect(element).toBe(current[i]));
+      expect(parent.innerHTML).toBe('42new text');
+    });
+
+    it('should append empty text node if the normalized array is empty', () => {
+      const context = newContext();
+      const parent = container();
       const toInsert = [
         true,
         false,
@@ -274,9 +354,9 @@ describe('runtime', () => {
       expect(parent.innerHTML).toBe('');
     });
 
-    it('should replace all current nodes with nothing if the normalized array is empty', () => {
+    it('should replace all current nodes with empty text node if the normalized array is empty', () => {
       const context = newContext();
-      const parent = container.cloneNode(true) as Element;
+      const parent = container();
       const current = [
         document.createTextNode('text'),
         document.createElement('div'),
@@ -299,19 +379,122 @@ describe('runtime', () => {
 
     it('should do nothing if the inserted element is unrecognized', () => {
       const context = newContext();
-      const node = insertWrapper(context, {});
-      expect(node.childNodes.length).toBe(0);
-      expect(node.innerHTML).toBe('');
+      const parent = container();
+      insert(context, parent, {});
+      expect(parent.childNodes.length).toBe(0);
+      expect(parent.innerHTML).toBe('');
     });
   });
 
-  // describe('reactive insert', () => {
-  //   const container = document.createElement('div');
+  describe('reactive insert', () => {
+    it('should append properties', () => {
+      const context = newContext();
+      const parent = container();
+      const atom1 = Atom.new<string | number>(42);
+      const atom2 = Atom.new<string | number>('text');
 
-  //   const insertWrapper = (context: Context, child: any): Element => {
-  //     const parent = container.cloneNode(true) as ParentNode;
-  //     insert(context, parent, child);
-  //     return parent as Element;
-  //   };
-  // });
+      insert(context, parent, atom1);
+      insert(context, parent, atom2);
+      expect(parent.childNodes.length).toBe(2);
+      expect(parent.innerHTML).toBe('42text');
+      expect(atom1.meta.observers).toBe(1);
+      expect(atom2.meta.observers).toBe(1);
+
+      atom1.set('new text');
+      atom2.set(42);
+      expect(parent.childNodes.length).toBe(2);
+      expect(parent.innerHTML).toBe('new text42');
+      expect(atom1.meta.observers).toBe(1);
+      expect(atom2.meta.observers).toBe(1);
+    });
+
+    it('should append nested properties', () => {
+      const context = newContext();
+      const parent = container();
+      const atom1 = Atom.new<string | number>(42);
+      const atom2 = Atom.new<string | number>('text');
+      const parentAtom = Atom.new(atom1);
+
+      insert(context, parent, parentAtom);
+      expect(parent.childNodes.length).toBe(1);
+      expect(parent.innerHTML).toBe('42');
+      expect(parentAtom.meta.observers).toBe(1);
+      expect(atom1.meta.observers).toBe(1);
+      expect(atom2.meta.observers).toBe(0);
+
+      atom1.set('atom1 subscribed');
+      expect(parent.childNodes.length).toBe(1);
+      expect(parent.innerHTML).toBe('atom1 subscribed');
+      expect(parentAtom.meta.observers).toBe(1);
+      expect(atom1.meta.observers).toBe(1);
+      expect(atom2.meta.observers).toBe(0);
+
+      parentAtom.set(atom2);
+      atom1.set('atom1 unsubscribed');
+      expect(parent.childNodes.length).toBe(1);
+      expect(parent.innerHTML).toBe('text');
+      expect(parentAtom.meta.observers).toBe(1);
+      expect(atom1.meta.observers).toBe(0);
+      expect(atom2.meta.observers).toBe(1);
+
+      atom2.set('atom2 subscribed');
+      expect(parent.childNodes.length).toBe(1);
+      expect(parent.innerHTML).toBe('atom2 subscribed');
+      expect(parentAtom.meta.observers).toBe(1);
+      expect(atom1.meta.observers).toBe(0);
+      expect(atom2.meta.observers).toBe(1);
+    });
+
+    it('should append properties with arrays', () => {
+      const context = newContext();
+      const parent = container();
+      const atom = Atom.new<(string | number)[]>([1, 2, 42]);
+
+      insert(context, parent, atom);
+      expect(parent.childNodes.length).toBe(3);
+      expect(parent.innerHTML).toBe('1242');
+      expect(atom.meta.observers).toBe(1);
+
+      atom.set(['foo', 'bar']);
+      expect(parent.childNodes.length).toBe(2);
+      expect(parent.innerHTML).toBe('foobar');
+      expect(atom.meta.observers).toBe(1);
+    });
+
+    it('should append properties with arrays with properties', () => {
+      const context = newContext();
+      const parent = container();
+      const atomChild1 = Atom.new<(string | number)[]>(['child ', 'foo']);
+      const atomChild2 = Atom.new<(string | number)[]>(['child ', 'bar']);
+      const parentAtom = Atom.new(['text ', atomChild1, ' text ', atomChild2]);
+
+      insert(context, parent, parentAtom);
+      expect(parent.childNodes.length).toBe(6);
+      expect(parent.innerHTML).toBe('text child foo text child bar');
+      expect(atomChild1.meta.observers).toBe(1);
+      expect(atomChild2.meta.observers).toBe(1);
+      expect(parentAtom.meta.observers).toBe(1);
+
+      atomChild2.set(['bar ', 'child']);
+      expect(parent.childNodes.length).toBe(6);
+      expect(parent.innerHTML).toBe('text child foo text bar child');
+      expect(atomChild1.meta.observers).toBe(1);
+      expect(atomChild2.meta.observers).toBe(1);
+      expect(parentAtom.meta.observers).toBe(1);
+
+      atomChild1.set(['foo ', 'child']);
+      expect(parent.childNodes.length).toBe(6);
+      expect(parent.innerHTML).toBe('text foo child text bar child');
+      expect(atomChild1.meta.observers).toBe(1);
+      expect(atomChild2.meta.observers).toBe(1);
+      expect(parentAtom.meta.observers).toBe(1);
+
+      parentAtom.set(['text ', atomChild2]);
+      expect(parent.childNodes.length).toBe(3);
+      expect(parent.innerHTML).toBe('text bar child');
+      expect(atomChild1.meta.observers).toBe(0);
+      expect(atomChild2.meta.observers).toBe(1);
+      expect(parentAtom.meta.observers).toBe(1);
+    });
+  });
 });

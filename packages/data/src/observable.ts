@@ -1,26 +1,16 @@
-export type Teardown = (() => void) | void;
+import { SubscriptionLike, Subscripable } from '@frp-dom/reactive-core';
 
-export interface Observer<A = void, Extra extends unknown[] = []> {
-  readonly next: (value: A, ...extra: Extra) => Teardown;
-}
-
-export interface Subscription {
-  unsubscribe(): void;
-}
-
-export interface Observable<A> {
-  subscribe(observer: Observer<A>): Subscription;
-}
-
-const subscriptionNone: Subscription = {
+export const subscriptionNone: SubscriptionLike = {
   unsubscribe: () => void 0,
 };
 
-const never: Observable<never> = {
+export const never: Subscripable<never> = {
   subscribe: () => subscriptionNone,
 };
 
-const merge = <A>(observables: readonly Observable<A>[]): Observable<A> => {
+export const merge = <A>(
+  observables: readonly Subscripable<A>[]
+): Subscripable<A> => {
   if (observables.length === 0) {
     return never;
   }
@@ -30,12 +20,12 @@ const merge = <A>(observables: readonly Observable<A>[]): Observable<A> => {
 
   return {
     subscribe: (listener) => {
-      const subscriptions = new Set<Subscription>();
+      const subscriptions = new Set<SubscriptionLike>();
       for (let idx = 0; idx < observables.length; idx++) {
         subscriptions.add(observables[idx].subscribe(listener));
       }
 
-      const subscription: Subscription = {
+      const subscription: SubscriptionLike = {
         unsubscribe: () => {
           for (const sub of subscriptions) sub.unsubscribe();
         },
@@ -44,11 +34,4 @@ const merge = <A>(observables: readonly Observable<A>[]): Observable<A> => {
       return subscription;
     },
   };
-};
-
-export const Observable = {
-  merge,
-  never,
-  void: () => subscriptionNone,
-  subscriptionNone,
 };

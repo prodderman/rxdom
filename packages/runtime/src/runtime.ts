@@ -1,5 +1,10 @@
 /* eslint-disable */
-import { Property, type Observer, type Subscription } from '@frp-dom/data';
+import {
+  isProperty,
+  type Property,
+  type Observer,
+  type Subscription,
+} from '@frp-dom/reactive-core';
 import type { JSX } from './jsx-runtime/jsx';
 
 export type MountableElement = ParentNode;
@@ -49,7 +54,7 @@ export function render(tree: JSX.Element, element: Element): () => void {
   };
 }
 
-export function template(html: string, isSVG: boolean) {
+export function template(html: string, isSVG = false): () => Element {
   let node: Node;
   const create = () => {
     const t = document.createElement('template');
@@ -65,7 +70,7 @@ export function template(html: string, isSVG: boolean) {
     return node;
   };
 
-  return () => (node ??= create()).cloneNode(true);
+  return () => (node ??= create()).cloneNode(true) as Element;
 }
 
 /**
@@ -93,7 +98,7 @@ function insertExpression(
   } else if (t === 'function') {
     while (typeof child === 'function') child = child(context);
     current = insertExpression(context, parentNode, child, current);
-  } else if (Property.is(child)) {
+  } else if (isProperty(child)) {
     bindProperty(
       context,
       child,
@@ -150,7 +155,8 @@ function normalizeIncomingArray(
       buffer.push(item);
     } else if (Array.isArray(item)) {
       normalizeIncomingArray(context, parentNode, buffer, item, prev);
-    } else if (Property.is(item)) {
+    } else if (isProperty(item)) {
+      debugger;
       const chunkStart = buffer.length;
       let prevChunkLength = 0;
       let prevInsertion: any = undefined;
@@ -223,7 +229,6 @@ function bindProperty(
 ) {
   const thisContext = newContext();
   const dispose = () => {
-    console.log(child.name);
     if (thisContext.subscriptions.size > 0) {
       for (const subscription of thisContext.subscriptions)
         subscription.unsubscribe();
@@ -231,20 +236,23 @@ function bindProperty(
     }
   };
 
+  let tickImmediately = false;
   const observer: Observer<any> = {
     next: (value) => {
+      tickImmediately = true;
+      dispose();
       effect(thisContext, value);
-      return dispose;
     },
   };
 
   const thisSubscription = child.subscribe(observer);
+  thisSubscription.add(dispose);
   parentContext.subscriptions.add(thisSubscription);
 
-  effect(thisContext, child.get());
+  if (!tickImmediately) {
+    effect(thisContext, child.get());
+  }
 }
-
-/* eslint-disable */
 
 export function reconcileArrays(parentNode: Node, a: Element[], b: Element[]) {
   let bLength = b.length,

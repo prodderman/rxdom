@@ -19,11 +19,14 @@
     "baseUrl": ".",
     "paths": {
       "@frp-dom/data": [
-        "dist/packages/data/src"
+        "packages/data/src/index.ts"
+      ],
+      "@frp-dom/reactive-core": [
+        "packages/reactive-core/src/index.ts"
       ],
       "@frp-dom/runtime": [
-        "dist/packages/runtime/src"
-      ],
+        "packages/runtime/src/index.ts"
+      ]
     }
   },
   "exclude": [
