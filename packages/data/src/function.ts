@@ -227,7 +227,6 @@ interface Pipe {
     ...fns: ((arg: unknown) => unknown)[]
   ): I;
 }
-
 export const pipe: Pipe = (...args: any[]) =>
   args.slice(1, args.length).reduce((acc, fn) => fn(acc), args[0]) as never;
 

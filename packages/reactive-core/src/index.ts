@@ -23,6 +23,7 @@ export interface Meta<M> {
 export type PropertyMeta = { name: string; observers: number };
 
 const propertySymbol = Symbol('property');
+const EMPTY_META = { name: 'anonym property', observers: 0 };
 
 export interface Property<A> extends Subscripable<A>, Meta<PropertyMeta> {
   get(): A;
@@ -82,7 +83,7 @@ export function propertyFrom<A>(
     get,
     subscribe: (listener) => newSubscription(subscribe(listener)),
     get meta() {
-      return getMeta?.() ?? { name: 'anonym property', observers: 0 };
+      return getMeta?.() ?? EMPTY_META;
     },
     [propertySymbol]: void 0,
   };

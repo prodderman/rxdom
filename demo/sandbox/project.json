@@ -1,8 +1,8 @@
 {
-  "name": "counter",
+  "name": "sandbox",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
-  "sourceRoot": "demo/counter/src",
+  "sourceRoot": "demo/sandbox/src",
   "tags": [],
   "targets": {
     "build": {
@@ -12,15 +12,15 @@
       ],
       "defaultConfiguration": "production",
       "options": {
-        "outputPath": "dist/demo/counter",
+        "outputPath": "dist/demo/sandbox",
         "compiler": "babel",
-        "main": "demo/counter/src/main.ts",
-        "tsConfig": "demo/counter/tsconfig.app.json",
-        "webpackConfig": "demo/counter/webpack.config.js",
+        "main": "demo/sandbox/src/main.ts",
+        "tsConfig": "demo/sandbox/tsconfig.app.json",
+        "webpackConfig": "demo/sandbox/webpack.config.js",
         "assets": [
-          "demo/counter/src/favicon.ico"
+          "demo/sandbox/src/favicon.ico"
         ],
-        "index": "demo/counter/src/index.html",
+        "index": "demo/sandbox/src/index.html",
         "baseHref": "/",
         "scripts": []
       },
@@ -34,15 +34,15 @@
           "vendorChunk": false,
           "fileReplacements": [
             {
-              "replace": "demo/counter/src/environments/environment.ts",
-              "with": "demo/counter/src/environments/environment.prod.ts"
+              "replace": "demo/sandbox/src/environments/environment.ts",
+              "with": "demo/sandbox/src/environments/environment.prod.ts"
             }
           ]
         }
       }
     },
     "serve": {
-      "command": "webpack serve --config demo/counter/webpack.config.ts"
+      "command": "webpack serve --config demo/sandbox/webpack.config.ts"
     },
     "lint": {
       "executor": "@nrwl/linter:eslint",
@@ -51,7 +51,7 @@
       ],
       "options": {
         "lintFilePatterns": [
-          "demo/counter/**/*.ts"
+          "demo/sandbox/**/*.ts"
         ]
       }
     },
@@ -61,7 +61,7 @@
         "{workspaceRoot}/coverage/{projectRoot}"
       ],
       "options": {
-        "jestConfig": "demo/counter/jest.config.ts",
+        "jestConfig": "demo/sandbox/jest.config.ts",
         "passWithNoTests": true
       },
       "configurations": {

@@ -15,34 +15,23 @@ type DynamicMaybe<T = unknown> = T | Property<T>;
 
 export namespace JSX {
   type Element = DynamicMaybe<
-    | Node
-    | ArrayElement
-    | FnElement
-    | string
-    | number
-    | boolean
-    | null
-    | undefined
+    Node | ArrayElement | string | number | boolean | null | undefined
   >;
 
   type ArrayElement = Array<Element>;
-
-  interface FnElement {
-    (context: any): Element;
-  }
 
   interface AriaAttributes {
     /** Identifies the currently active element when DOM focus is on a composite widget, textbox, group, or application. */
     'aria-activedescendant'?: string | undefined;
     /** Indicates whether assistive technologies will present all, or only parts of, the changed region based on the change notifications defined by the aria-relevant attribute. */
-    'aria-atomic'?: Booleanish | undefined;
+    'aria-atomic'?: boolean | undefined;
     /**
      * Indicates whether inputting text could trigger display of one or more predictions of the user's intended value for an input and specifies how predictions would be
      * presented if they are made.
      */
     'aria-autocomplete'?: 'none' | 'inline' | 'list' | 'both' | undefined;
     /** Indicates an element is being modified and that assistive technologies MAY want to wait until the modifications are complete before exposing them to the user. */
-    'aria-busy'?: Booleanish | undefined;
+    'aria-busy'?: boolean | undefined;
     /**
      * Indicates the current "checked" state of checkboxes, radio buttons, and other widgets.
      * @see aria-pressed @see aria-selected.
@@ -93,7 +82,7 @@ export namespace JSX {
      * Indicates that the element is perceivable but disabled, so it is not editable or otherwise operable.
      * @see aria-hidden @see aria-readonly.
      */
-    'aria-disabled'?: Booleanish | undefined;
+    'aria-disabled'?: boolean | undefined;
     /**
      * Indicates what functions can be performed when a dragged object is released on the drop target.
      * @deprecated in ARIA 1.1
@@ -112,7 +101,7 @@ export namespace JSX {
      */
     'aria-errormessage'?: string | undefined;
     /** Indicates whether the element, or another grouping element it controls, is currently expanded or collapsed. */
-    'aria-expanded'?: Booleanish | undefined;
+    'aria-expanded'?: boolean | undefined;
     /**
      * Identifies the next element (or elements) in an alternate reading order of content which, at the user's discretion,
      * allows assistive technology to override the general default of reading in document source order.
@@ -122,7 +111,7 @@ export namespace JSX {
      * Indicates an element's "grabbed" state in a drag-and-drop operation.
      * @deprecated in ARIA 1.1
      */
-    'aria-grabbed'?: Booleanish | undefined;
+    'aria-grabbed'?: boolean | undefined;
     /** Indicates the availability and type of interactive popup element, such as menu or dialog, that can be triggered by an element. */
     'aria-haspopup'?:
       | boolean
@@ -138,7 +127,7 @@ export namespace JSX {
      * Indicates whether the element is exposed to an accessibility API.
      * @see aria-disabled.
      */
-    'aria-hidden'?: Booleanish | undefined;
+    'aria-hidden'?: boolean | undefined;
     /**
      * Indicates the entered value does not conform to the format expected by the application.
      * @see aria-errormessage.
@@ -167,11 +156,11 @@ export namespace JSX {
     /** Indicates that an element will be updated, and describes the types of updates the user agents, assistive technologies, and user can expect from the live region. */
     'aria-live'?: 'off' | 'assertive' | 'polite' | undefined;
     /** Indicates whether an element is modal when displayed. */
-    'aria-modal'?: Booleanish | undefined;
+    'aria-modal'?: boolean | undefined;
     /** Indicates whether a text box accepts multiple lines of input or only a single line. */
-    'aria-multiline'?: Booleanish | undefined;
+    'aria-multiline'?: boolean | undefined;
     /** Indicates that the user may select more than one item from the current selectable descendants. */
-    'aria-multiselectable'?: Booleanish | undefined;
+    'aria-multiselectable'?: boolean | undefined;
     /** Indicates whether the element's orientation is horizontal, vertical, or unknown/ambiguous. */
     'aria-orientation'?: 'horizontal' | 'vertical' | undefined;
     /**
@@ -199,7 +188,7 @@ export namespace JSX {
      * Indicates that the element is not editable, but is otherwise operable.
      * @see aria-disabled.
      */
-    'aria-readonly'?: Booleanish | undefined;
+    'aria-readonly'?: boolean | undefined;
     /**
      * Indicates what notifications the user agent will trigger when the accessibility tree within a live region is modified.
      * @see aria-atomic.
@@ -217,7 +206,7 @@ export namespace JSX {
       | 'text removals'
       | undefined;
     /** Indicates that user input is required on the element before a form may be submitted. */
-    'aria-required'?: Booleanish | undefined;
+    'aria-required'?: boolean | undefined;
     /** Defines a human-readable, author-localized description for the role of an element. */
     'aria-roledescription'?: string | undefined;
     /**
@@ -239,7 +228,7 @@ export namespace JSX {
      * Indicates the current "selected" state of various widgets.
      * @see aria-checked @see aria-pressed.
      */
-    'aria-selected'?: Booleanish | undefined;
+    'aria-selected'?: boolean | undefined;
     /**
      * Defines the number of items in the current set of listitems or treeitems. Not required if all elements in the set are present in the DOM.
      * @see aria-posinset.

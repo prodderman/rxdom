@@ -1,14 +1,12 @@
 const root = document.getElementById('root');
+const atomChild1 = Atom.new(['child ', 'foo']);
+const atomChild2 = Atom.new(['child ', 'bar']);
+const parentAtom = Atom.new(['text ', atomChild2]);
+window.atomChild1 = atomChild1;
+window.atomChild2 = atomChild2;
+window.parentAtom = parentAtom;
 const App = () => {
-  const count = Atom.new('count', 0);
-  const enough = Property.combine('a', count, (c) => c < 2);
-
-  return (
-    <>
-      <div />
-      <div />
-    </>
-  );
+  return <main>{parentAtom}</main>;
 };
 
-render(<App />, root);
+render(() => <App />, root);

@@ -31,11 +31,10 @@ export function processExpressionContainer(
     return result;
   }
 
-  result.id = id('mark');
+  result.id = id('marker');
   result.template = context.skipId ? '' : '<!>';
   result.expressions.push(
     t.callExpression(registerImport(path, 'insert'), [
-      t.identifier('ctx'),
       context.parentId,
       evalResult.expression,
       ...(result.id ? [result.id] : []),
@@ -111,7 +110,6 @@ export function evalExpression(
 
     return {
       type: 'expression',
-      value: expression.node,
       expression: expression.node,
     };
   }

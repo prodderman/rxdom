@@ -12,4 +12,4 @@ const App = () => {
   return <main>{parentAtom}</main>;
 };
 
-render(<App />, root);
+render(() => <App />, root);

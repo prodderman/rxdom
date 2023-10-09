@@ -96,7 +96,7 @@ export const combine = <Properties extends Property<unknown>[], Result>(
   const subscribe = (listener: Observer<Result>): SubscriptionLike => {
     lastValue = get();
     const inner = subject.subscribe(listener);
-    if (subject.meta.observers > 0 && !outerSubscription) {
+    if (!outerSubscription && subject.meta.observers > 0) {
       outerSubscription = merged.subscribe(observer);
     }
     return {

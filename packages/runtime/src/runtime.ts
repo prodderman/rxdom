@@ -3,29 +3,35 @@ import {
   isProperty,
   type Property,
   type Observer,
-  type Subscription,
 } from '@frp-dom/reactive-core';
 import type { JSX } from './jsx-runtime/jsx';
+import {
+  getCurrentContext,
+  newContext,
+  runInContext,
+  freeContext,
+} from './context';
 
 export type MountableElement = ParentNode;
 
-export interface Context {
-  subscriptions: Set<Subscription>;
-}
+export function render(tree: () => JSX.Element, element: Element): () => void {
+  const rootContext = newContext();
+  runInContext(rootContext, () => insert(element, tree()), null);
 
-export function newContext(): Context {
-  return {
-    subscriptions: new Set(),
+  return () => {
+    for (const subscription of rootContext.subscriptions)
+      subscription.unsubscribe();
+    freeContext();
+    element.innerHTML = '';
   };
 }
 
 export function insert(
-  ctx: Context,
   parent: MountableElement,
   child: any,
   current?: any
 ): any {
-  return insertExpression(ctx, parent, child, current);
+  return insertExpression(parent, child, current);
 }
 
 export function className() {}
@@ -40,18 +46,6 @@ export function addEventListener(
 
 export function createComponent(Comp: (props: any) => any, props: any): any {
   return Comp(props);
-}
-
-export function render(tree: JSX.Element, element: Element): () => void {
-  const context = newContext();
-  insert(context, element, typeof tree === 'function' ? tree(context) : tree);
-
-  return () => {
-    for (const subscription of context.subscriptions)
-      subscription.unsubscribe();
-    context.subscriptions.clear();
-    element.innerHTML = '';
-  };
 }
 
 export function template(html: string, isSVG = false): () => Element {
@@ -81,38 +75,41 @@ export function template(html: string, isSVG = false): () => Element {
  */
 
 function insertExpression(
-  context: Context,
   parentNode: MountableElement,
   child: any,
   current?: any
-) {
+): any {
   const t = typeof child,
     isCurrentArray = current && Array.isArray(current);
-  if (t === 'string' || t === 'number' || t === 'bigint' || t === 'symbol') {
-    if (t !== 'string') child = child.toString();
-    isCurrentArray && (current = cleanChildren(current));
-    current = insertText(parentNode, current, child);
-  } else if (child == null || t === 'boolean') {
-    isCurrentArray && (current = cleanChildren(current));
-    current = insertText(parentNode, current);
-  } else if (t === 'function') {
-    while (typeof child === 'function') child = child(context);
-    current = insertExpression(context, parentNode, child, current);
-  } else if (isProperty(child)) {
-    bindProperty(
-      context,
-      child,
-      (newContext, value) =>
-        (current = insertExpression(newContext, parentNode, value, current))
-    );
-  } else if (Array.isArray(child)) {
-    const array: Element[] = [];
-    normalizeIncomingArray(context, parentNode, array, child, current);
 
-    if (array.length === 0) {
-      isCurrentArray && (current = cleanChildren(current));
-      current = insertText(parentNode, current);
-    } else {
+  switch (true) {
+    case t === 'string' || t === 'number' || t === 'bigint' || t === 'symbol': {
+      if (t !== 'string') child = child.toString();
+
+      if (isCurrentArray) current = cleanChildren(current);
+      return insertText(parentNode, current, child);
+    }
+    case child == null || t === 'boolean': {
+      if (isCurrentArray) current = cleanChildren(current);
+      return insertText(parentNode, current);
+    }
+    case isProperty(child): {
+      bindProperty(
+        child,
+        () => (current = insertExpression(parentNode, child.get(), current))
+      );
+
+      return current;
+    }
+    case Array.isArray(child): {
+      const array: Element[] = [];
+      normalizeIncomingArray(parentNode, array, child, current);
+
+      if (array.length === 0) {
+        isCurrentArray && (current = cleanChildren(current));
+        return insertText(parentNode, current);
+      }
+
       if (isCurrentArray) {
         reconcileArrays(parentNode, current, array);
       } else if (current) {
@@ -120,26 +117,29 @@ function insertExpression(
       } else {
         parentNode.append.apply(parentNode, array);
       }
-      current = array;
-    }
-  } else if (child.nodeType) {
-    isCurrentArray && (current = cleanChildren(current));
 
-    if (current) {
-      current.replaceWith(child);
-    } else {
-      parentNode.append(child);
+      return array;
     }
-    current = child;
-  } else {
-    console.warn(`Unrecognized child`, child);
+    case child.nodeType !== undefined: {
+      if (isCurrentArray) {
+        current = cleanChildren(current);
+      }
+
+      if (current) {
+        current.replaceWith(child);
+      } else {
+        parentNode.append(child);
+      }
+      return child;
+    }
+    default: {
+      console.warn(`Unrecognized child`, child);
+      return current;
+    }
   }
-
-  return current;
 }
 
 function normalizeIncomingArray(
-  context: Context,
   parentNode: MountableElement,
   buffer: any[],
   child: any[],
@@ -154,19 +154,14 @@ function normalizeIncomingArray(
     } else if (item.nodeType) {
       buffer.push(item);
     } else if (Array.isArray(item)) {
-      normalizeIncomingArray(context, parentNode, buffer, item, prev);
+      normalizeIncomingArray(parentNode, buffer, item, prev);
     } else if (isProperty(item)) {
-      debugger;
+      // TODO: works incorrectly
       const chunkStart = buffer.length;
       let prevChunkLength = 0;
       let prevInsertion: any = undefined;
-      bindProperty(context, item, (newContext, newValue) => {
-        prevInsertion = insertExpression(
-          newContext,
-          parentNode,
-          newValue,
-          prevInsertion
-        );
+      bindProperty(item, () => {
+        prevInsertion = insertExpression(parentNode, item.get(), prevInsertion);
         buffer.splice(
           chunkStart,
           prevChunkLength,
@@ -176,15 +171,6 @@ function normalizeIncomingArray(
           ? prevInsertion.length
           : 1;
       });
-    } else if (t === 'function') {
-      while (typeof item === 'function') item = item(context);
-      normalizeIncomingArray(
-        context,
-        parentNode,
-        buffer,
-        Array.isArray(item) ? item : [item],
-        Array.isArray(prev) ? prev : [prev]
-      );
     } else {
       if (t !== 'string') item = item.toString();
       if (prev && prev.nodeType === 3) {
@@ -216,18 +202,17 @@ function insertText(
       current.replaceWith((current = document.createTextNode(text)));
     }
   } else {
+    console.log(parentNode);
     parentNode.append((current = document.createTextNode(text)));
   }
 
   return current;
 }
 
-function bindProperty(
-  parentContext: Context,
-  child: Property<any>,
-  effect: (context: Context, value: any) => any
-) {
+function bindProperty(child: Property<any>, effect: () => void) {
+  const parentContext = getCurrentContext();
   const thisContext = newContext();
+
   const dispose = () => {
     if (thisContext.subscriptions.size > 0) {
       for (const subscription of thisContext.subscriptions)
@@ -238,10 +223,10 @@ function bindProperty(
 
   let tickImmediately = false;
   const observer: Observer<any> = {
-    next: (value) => {
+    next: () => {
       tickImmediately = true;
       dispose();
-      effect(thisContext, value);
+      runInContext(thisContext, effect, parentContext);
     },
   };
 
@@ -250,11 +235,11 @@ function bindProperty(
   parentContext.subscriptions.add(thisSubscription);
 
   if (!tickImmediately) {
-    effect(thisContext, child.get());
+    runInContext(thisContext, effect, parentContext);
   }
 }
 
-export function reconcileArrays(parentNode: Node, a: Element[], b: Element[]) {
+function reconcileArrays(parentNode: Node, a: Element[], b: Element[]) {
   let bLength = b.length,
     aEnd = a.length,
     bEnd = bLength,
