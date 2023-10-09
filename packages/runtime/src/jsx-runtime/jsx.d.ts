@@ -418,7 +418,7 @@ export namespace JSX {
     blockquote: {};
     body: {};
     br: {};
-    button: {};
+    button: Dynamic<HTMLAttributes<HTMLButtonElement>>;
     canvas: {};
     caption: {};
     cite: {};
@@ -456,14 +456,14 @@ export namespace JSX {
     i: {};
     iframe: {};
     img: {};
-    input: {};
+    input: Dynamic<HTMLAttributes<HTMLSpanElement>>;
     ins: {};
     kbd: {};
     label: {};
     legend: {};
     li: {};
     link: {};
-    main: {};
+    main: Dynamic<HTMLAttributes<HTMLDivElement>>;
     map: {};
     mark: {};
     menu: {};

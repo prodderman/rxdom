@@ -1,15 +1,24 @@
 import { render } from '@frp-dom/runtime';
 import { Atom } from '@frp-dom/data';
+import './styles.css';
 
 const root = document.getElementById('root');
-const atomChild1 = Atom.new<(string | number)[]>(['child ', 'foo']);
-const atomChild2 = Atom.new<(string | number)[]>(['child ', 'bar']);
-const parentAtom = Atom.new(['text ', atomChild2]);
-window.atomChild1 = atomChild1;
-window.atomChild2 = atomChild2;
-window.parentAtom = parentAtom;
+const count = Atom.new(0);
+
 const App = () => {
-  return <main>{parentAtom}</main>;
+  return (
+    <main class="main">
+      <div class="counter">
+        <button class="decrement" onclick={() => count.modify((v) => v - 1)}>
+          -
+        </button>
+        <div class="box">{count}</div>
+        <button class="increment" onclick={() => count.modify((v) => v + 1)}>
+          +
+        </button>
+      </div>
+    </main>
+  );
 };
 
 render(() => <App />, root);

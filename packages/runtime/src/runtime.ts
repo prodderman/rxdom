@@ -202,7 +202,6 @@ function insertText(
       current.replaceWith((current = document.createTextNode(text)));
     }
   } else {
-    console.log(parentNode);
     parentNode.append((current = document.createTextNode(text)));
   }
 
