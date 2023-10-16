@@ -1,30 +1,7 @@
-/* eslint-disable */
-import {
-  isProperty,
-  type Property,
-  type Observer,
-} from '@frp-dom/reactive-core';
-import type { JSX } from './jsx-runtime/jsx';
-import {
-  getCurrentContext,
-  newContext,
-  runInContext,
-  freeContext,
-} from './context';
+import { isProperty } from '@frp-dom/reactive-core';
+import { bindProperty } from '../bind';
 
 export type MountableElement = ParentNode;
-
-export function render(tree: () => JSX.Element, element: Element): () => void {
-  const rootContext = newContext();
-  runInContext(rootContext, () => insert(element, tree()), null);
-
-  return () => {
-    for (const subscription of rootContext.subscriptions)
-      subscription.unsubscribe();
-    freeContext();
-    element.innerHTML = '';
-  };
-}
 
 export function insert(
   parent: MountableElement,
@@ -33,46 +10,6 @@ export function insert(
 ): any {
   return insertExpression(parent, child, current);
 }
-
-export function className() {}
-
-export function addEventListener(
-  node: Node,
-  name: string,
-  handler: EventListenerOrEventListenerObject
-) {
-  node.addEventListener(name, handler);
-}
-
-export function createComponent(Comp: (props: any) => any, props: any): any {
-  return Comp(props);
-}
-
-export function template(html: string, isSVG = false): () => Element {
-  let node: Node;
-  const create = () => {
-    const t = document.createElement('template');
-    t.innerHTML = html;
-    const node = isSVG
-      ? t.content.firstChild!.firstChild
-      : t.content.firstChild;
-
-    if (!node) {
-      throw Error(`Invalid html ${html}`);
-    }
-
-    return node;
-  };
-
-  return () => (node ??= create()).cloneNode(true) as Element;
-}
-
-/**
- *
- * @param {ParentNode} parentNode Node into which the 'child' will be inserted
- * @param {Any} child Any content that will be placed inside the 'parent'
- * @param {Node | Node[] | null | undefined} current
- */
 
 function insertExpression(
   parentNode: MountableElement,
@@ -151,6 +88,7 @@ function normalizeIncomingArray(
       t;
 
     if (item === '' || item == null || (t = typeof item) == 'boolean') {
+      //
     } else if (item.nodeType) {
       buffer.push(item);
     } else if (Array.isArray(item)) {
@@ -190,11 +128,7 @@ function cleanChildren(current: any[]) {
   return current[0];
 }
 
-function insertText(
-  parentNode: MountableElement,
-  current?: any,
-  text: string = ''
-) {
+function insertText(parentNode: MountableElement, current?: any, text = '') {
   if (current) {
     if (current.nodeType === 3) {
       current.data = text;
@@ -206,36 +140,6 @@ function insertText(
   }
 
   return current;
-}
-
-function bindProperty(child: Property<any>, effect: () => void) {
-  const parentContext = getCurrentContext();
-  const thisContext = newContext();
-
-  const dispose = () => {
-    if (thisContext.subscriptions.size > 0) {
-      for (const subscription of thisContext.subscriptions)
-        subscription.unsubscribe();
-      thisContext.subscriptions.clear();
-    }
-  };
-
-  let tickImmediately = false;
-  const observer: Observer<any> = {
-    next: () => {
-      tickImmediately = true;
-      dispose();
-      runInContext(thisContext, effect, parentContext);
-    },
-  };
-
-  const thisSubscription = child.subscribe(observer);
-  thisSubscription.add(dispose);
-  parentContext.subscriptions.add(thisSubscription);
-
-  if (!tickImmediately) {
-    runInContext(thisContext, effect, parentContext);
-  }
 }
 
 function reconcileArrays(parentNode: Node, a: Element[], b: Element[]) {

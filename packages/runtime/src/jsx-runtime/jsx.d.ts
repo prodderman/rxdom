@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Property } from '@frp-dom/reactive-core';
+import type { Property } from '@frp-dom/reactive-core';
 
 type DOMElement = Element;
 

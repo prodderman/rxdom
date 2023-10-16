@@ -1,4 +1,4 @@
-import { Subscription } from '@frp-dom/reactive-core';
+import type { Subscription } from '@frp-dom/reactive-core';
 
 export interface Context {
   subscriptions: Set<Subscription>;

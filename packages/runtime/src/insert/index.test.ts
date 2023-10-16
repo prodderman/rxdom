@@ -1,6 +1,8 @@
 import { Atom } from '@frp-dom/data';
-import { insert, template } from './runtime';
-import { newContext, runInContext } from './context';
+
+import { template } from '../template';
+import { newContext, runInContext } from '../context';
+import { insert } from './';
 
 describe('runtime', () => {
   const container = template('<div></div>');
