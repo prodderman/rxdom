@@ -162,8 +162,7 @@ export function isPrimitive(value: unknown): value is PrimitiveType {
     type === 'boolean' ||
     type === 'number' ||
     type === 'string' ||
-    type === 'undefined' ||
-    value === null
+    value == null
   );
 }
 

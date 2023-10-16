@@ -11,6 +11,7 @@ import {
   isJSXExpressionContainerPath,
   unwrapFragment,
   uselessChildren,
+  isJSXSpreadAttributePath,
 } from '../utils';
 import { evalExpression } from './processJSXExpression';
 import { processNode } from './processNode';
@@ -57,8 +58,12 @@ export function processJSXElement(
         declarations: t.VariableDeclarator[];
         prevId: t.Identifier;
       }>(
-        (acc, child, idx) => {
-          if (child.id) {
+        (acc, child, idx, results) => {
+          const restChildrenHaveExpressions = results
+            .slice(idx)
+            .some((res) => res.expressions.length > 0);
+
+          if (child.id && restChildrenHaveExpressions) {
             acc.declarations.push(
               t.variableDeclarator(
                 child.id,
@@ -116,6 +121,10 @@ function processTagAttributes(
         }
       }
 
+      if (isJSXSpreadAttributePath(attr)) {
+        throw new Error('spread attributes is not implemented');
+      }
+
       return acc;
     },
     { attributes: [], expressions: [] }
@@ -130,7 +139,7 @@ function processTagChildren(
     .get('children')
     .flatMap(unwrapFragment)
     .filter(uselessChildren)
-    .map((child, idx, children) => {
+    .map((child, _, children) => {
       return processNode(child, {
         parentId,
         skipId: children.length === 1,
@@ -216,7 +225,7 @@ function canBeResolved(path: NodePath<t.JSXExpressionContainer>) {
 
 function processAsAttribute(
   nodeId: t.Identifier,
-  [key]: [string, string?],
+  [key, namespace]: [string, string?],
   value: NodePath<
     | t.StringLiteral
     | t.JSXElement
@@ -226,6 +235,7 @@ function processAsAttribute(
     | undefined
   >
 ): JSXAttributesResult {
+  // boolean attribute: <div attr />
   if (value.node === undefined || value.node === null) {
     return {
       attributes: [key],
@@ -233,9 +243,19 @@ function processAsAttribute(
     };
   }
 
+  // name="value" attribute: <div attr="value" />
+  if (t.isStringLiteral(value.node)) {
+    return {
+      attributes: [`${key}="${value.node.value}"`],
+      expressions: [],
+    };
+  }
+
+  // expression attribute: <div attr={value} />
   if (isJSXExpressionContainerPath(value)) {
     const evalResult = evalExpression(value);
 
+    // <div attr={undefined} /> or <div attr={null} /> <div attr={} />
     if (evalResult.type === 'void' || evalResult.type === 'empty') {
       return {
         attributes: [],
@@ -243,6 +263,9 @@ function processAsAttribute(
       };
     }
 
+    // <div attr={"value"} /> -> <div attr="value" />
+    // <div attr={42} /> -> <div attr="42" />
+    // <div attr={false} /> -> <div attr="false" />
     if (evalResult.type === 'primitive') {
       return {
         attributes: [`${key}="${evalResult.value.toString()}"`],
@@ -262,12 +285,7 @@ function processAsAttribute(
     };
   }
 
-  if (t.isStringLiteral(value.node)) {
-    return {
-      attributes: [`${key}="${value.node.value}"`],
-      expressions: [],
-    };
-  }
+  console.warn('unrecognized attribute:', value.node);
 
   return {
     attributes: [],

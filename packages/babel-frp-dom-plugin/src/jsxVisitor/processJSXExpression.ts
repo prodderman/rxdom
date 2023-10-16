@@ -87,7 +87,7 @@ export function evalExpression(
     const evalResult = expression.evaluate();
     if (evalResult.confident) {
       if (isPrimitive(evalResult.value)) {
-        if (evalResult.value === undefined || evalResult.value === null) {
+        if (evalResult.value == null) {
           return {
             type: 'empty',
             value: evalResult.value,
@@ -101,6 +101,7 @@ export function evalExpression(
           expression: expression.node,
         };
       }
+
       return {
         type: 'non-primitive',
         value: expression.node,

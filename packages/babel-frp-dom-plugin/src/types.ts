@@ -18,8 +18,8 @@ export type JSXProcessResult = {
 };
 
 export type JSXAttributesResult = {
-  attributes: string[];
-  expressions: t.Expression[];
+  attributes: string[]; // inline attributes
+  expressions: t.Expression[]; // attributes with expressions
 };
 
 export type ProcessContext = {
