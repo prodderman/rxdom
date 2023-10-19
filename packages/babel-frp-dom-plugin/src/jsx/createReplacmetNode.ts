@@ -1,5 +1,5 @@
 import * as t from '@babel/types';
-import { registerTemplate } from '../programVisitor';
+import { registerTemplate } from '../program';
 import { JSXNodePath, JSXProcessResult } from '../types';
 
 export function createReplacementNode(

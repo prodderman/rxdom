@@ -68,7 +68,7 @@ export function mkComponentProp(
     : t.objectProperty(t.stringLiteral(name), value);
 }
 
-export function uselessChildren(child: NodePath<JSXChildren>) {
+export function isChildUseless(child: NodePath<JSXChildren>) {
   return (
     !(
       t.isJSXExpressionContainer(child.node) &&
@@ -96,7 +96,7 @@ export function processArrayChildren(
 ): t.Expression[] {
   return path
     .get('children')
-    .filter(uselessChildren)
+    .filter(isChildUseless)
     .map((child) => {
       if (t.isJSXText(child.node)) {
         return t.stringLiteral(processText(child.node));
@@ -164,14 +164,6 @@ export function isPrimitive(value: unknown): value is PrimitiveType {
     type === 'string' ||
     value == null
   );
-}
-
-export function parseAttributeName<N extends t.JSXAttribute>(
-  attr: NodePath<N>
-): [string, string?] {
-  return t.isJSXNamespacedName(attr.node.name)
-    ? [attr.node.name.name.name, attr.node.name.namespace.name]
-    : [attr.node.name.name];
 }
 
 export const genId =

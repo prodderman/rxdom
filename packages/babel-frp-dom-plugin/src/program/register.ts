@@ -46,7 +46,7 @@ export function registerTemplate(
   return id;
 }
 
-export function registerImport(path: NodePath, fnName: RuntimeFn) {
+export function registerImport(path: NodePath, fnName: RuntimeFn): t.Identifier {
   const program = path.scope.getProgramParent();
   const config: Config = program.getData('config');
   const data: ImportStorage = program.getData('imports');

@@ -4,8 +4,6 @@ export interface Context {
   subscriptions: Set<Subscription>;
 }
 
-let context: Context | null = null;
-
 export function newContext(): Context {
   return {
     subscriptions: new Set(),
@@ -13,24 +11,26 @@ export function newContext(): Context {
   };
 }
 
-export function freeContext() {
-  context = null;
-}
+let context: Context = newContext();
+const rootContext = context;
 
 export function runInContext(
   thisContext: Context,
   fn: () => void,
-  prevContext: Context | null
+  prevContext: Context
 ) {
   context = thisContext;
   fn();
   context = prevContext;
 }
 
-export const getCurrentContext = () => {
-  if (context === null) {
-    throw new Error('TODO: what to do if it ran out of context?');
+export function disposeRoot() {
+  for (const subscription of rootContext.subscriptions) {
+    rootContext.subscriptions.delete(subscription);
+    subscription.unsubscribe();
   }
+}
 
+export const getCurrentContext = () => {
   return context;
 };

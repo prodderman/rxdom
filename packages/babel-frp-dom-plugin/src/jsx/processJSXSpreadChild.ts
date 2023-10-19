@@ -1,6 +1,6 @@
 import { NodePath } from '@babel/core';
 import * as t from '@babel/types';
-import { registerImport } from '../programVisitor';
+import { registerImport } from '../program';
 
 import { JSXProcessResult, ProcessContext } from '../types';
 import { genId } from '../utils';

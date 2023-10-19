@@ -1,16 +1,16 @@
 import { NodePath } from '@babel/core';
 import * as t from '@babel/types';
 
-import { registerImport } from '../programVisitor';
+import { registerImport } from '../program';
 import { ProcessContext, JSXProcessResult } from '../types';
 import {
   convertComponentIdentifier,
-  parseAttributeName,
   isPrimitive,
   mkComponentProp,
   processArrayChildren,
   toLiteral,
 } from '../utils';
+import { parseAttributeName } from '../attributes';
 
 export function processComponent(
   path: NodePath<t.JSXElement>,

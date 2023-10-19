@@ -7,9 +7,10 @@ export function bindProperty(child: Property<any>, effect: () => void) {
 
   const dispose = () => {
     if (thisContext.subscriptions.size > 0) {
-      for (const subscription of thisContext.subscriptions)
+      for (const subscription of thisContext.subscriptions) {
+        thisContext.subscriptions.delete(subscription);
         subscription.unsubscribe();
-      thisContext.subscriptions.clear();
+      }
     }
   };
 

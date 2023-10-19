@@ -7,7 +7,7 @@ const count = Atom.new(0);
 
 const App = () => {
   return (
-    <main class="main">
+    <main class=<div />>
       <div class="counter">
         <button class="decrement" onclick={() => count.modify((v) => v - 1)}>
           -

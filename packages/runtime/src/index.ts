@@ -1,4 +1,4 @@
-export { render } from './render';
+export { mount } from './mount';
 export { template } from './template';
 export { createComponent } from './component';
 export { addEventListener } from './event-listener';

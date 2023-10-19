@@ -1,19 +1,18 @@
-import { createComponent as _$createComponent } from '@frp/runtime';
 import { template as _$template } from '@frp/runtime';
-import { insert as _$insert } from '@frp/runtime';
-const _tmpl$ = /*#__PURE__*/ _$template(`<main></main>`);
-const root = document.getElementById('root');
-const atomChild1 = Atom.new(['child ', 'foo']);
-const atomChild2 = Atom.new(['child ', 'bar']);
-const parentAtom = Atom.new(['text ', atomChild2]);
-window.atomChild1 = atomChild1;
-window.atomChild2 = atomChild2;
-window.parentAtom = parentAtom;
+import { setAttributes as _$setAttributes } from '@frp/runtime';
+const _tmpl$ = /*#__PURE__*/ _$template(`<div id="123"></div>`);
 const App = () => {
   return (() => {
-    const _main = _tmpl$();
-    _$insert(_main, parentAtom);
-    return _main;
+    const _div = _tmpl$();
+    _$setAttributes(_div, {
+      attr: {
+        ...asd,
+      },
+      ...spread,
+      ...spread,
+      ...spread2,
+      area: asd,
+    });
+    return _div;
   })();
 };
-render(() => _$createComponent(App, {}), root);

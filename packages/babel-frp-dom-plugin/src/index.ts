@@ -1,7 +1,7 @@
 import type { PluginObj, PluginPass } from '@babel/core';
 import SyntaxJSX from '@babel/plugin-syntax-jsx';
-import { transformJSX } from './jsxVisitor';
-import { postprocess, preprocess } from './programVisitor';
+import { transformJSX } from './jsx';
+import { postprocess, preprocess } from './program';
 
 export default (): PluginObj<PluginPass> => {
   return {

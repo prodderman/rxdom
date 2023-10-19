@@ -1,13 +1,13 @@
 import { template as _$template } from '@frp/runtime';
 import { addEventListener as _$addEventListener } from '@frp/runtime';
 const _tmpl$ = /*#__PURE__*/ _$template(
-  `<div id="main"><button>Click</button><button>Click</button><button>Click</button><button>Click</button><button>Click</button><button>Click Delegated</button><button>Click Delegated</button><button>Click Delegated</button><button>Click Delegated</button><button>Click Delegated</button><button>Click Capture</button></div>`
+  `<div id="main"><button >Click</button><button >Click</button><button >Click</button><button >Click</button><button >Click</button><button >Click Delegated</button><button >Click Delegated</button><button >Click Delegated</button><button >Click Delegated</button><button >Click Delegated</button><button >Click Capture</button></div>`
 );
 function hoisted1() {
   console.log('hoisted');
 }
 const hoisted2 = () => console.log('hoisted delegated');
-const template = (ctx) => {
+const template = (() => {
   const _div = _tmpl$(),
     _button = _div.firstChild,
     _button2 = _button.nextSibling,
@@ -28,4 +28,4 @@ const template = (ctx) => {
   _button10.addEventListener('click', hoisted2, false);
   _button11.addEventListener('click', () => console.log('listener'), true);
   return _div;
-};
+})();

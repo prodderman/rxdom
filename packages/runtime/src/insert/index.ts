@@ -18,7 +18,6 @@ function insertExpression(
 ): any {
   const t = typeof child,
     isCurrentArray = current && Array.isArray(current);
-
   switch (true) {
     case t === 'string' || t === 'number' || t === 'bigint' || t === 'symbol': {
       if (t !== 'string') child = child.toString();

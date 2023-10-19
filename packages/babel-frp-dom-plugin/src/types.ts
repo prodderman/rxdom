@@ -18,7 +18,7 @@ export type JSXProcessResult = {
 };
 
 export type JSXAttributesResult = {
-  attributes: string[]; // inline attributes
+  template: string; // static attributes
   expressions: t.Expression[]; // attributes with expressions
 };
 
@@ -46,4 +46,5 @@ export type RuntimeFn =
   | 'template'
   | 'createComponent'
   | 'addEventListener'
-  | 'setAttribute';
+  | 'setAttribute'
+  | 'setAttributes';

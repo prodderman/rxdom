@@ -20,26 +20,26 @@ const _tmpl$ = /*#__PURE__*/ _$template(`<div>Hello <!></div>`);
 const Child = (props) => {
   const [s, set] = createSignal();
   return [
-    (ctx) => {
+    (() => {
       const _div = _tmpl$(),
         _text = _div.firstChild,
-        _mark = _text.nextSibling;
+        _marker = _text.nextSibling;
       _$setAttribute(_div, 'ref', props.ref);
-      _$insert(ctx, _div, props.name, _mark);
+      _$insert(_div, props.name, _marker);
       return _div;
-    },
-    (ctx) => {
+    })(),
+    (() => {
       const _div2 = _tmpl$2();
       _$setAttribute(_div2, 'ref', set);
-      _$insert(ctx, _div2, props.children);
+      _$insert(_div2, props.children);
       return _div2;
-    },
+    })(),
   ];
 };
 const template = (props) => {
   let childRef;
   const { content } = props;
-  return (ctx) => {
+  return (() => {
     const _div3 = _tmpl$3(),
       _Child = _div3.firstChild,
       _Child2 = _Child.nextSibling,
@@ -62,11 +62,11 @@ const template = (props) => {
       _div3,
       _$createComponent(Child, {
         get children() {
-          return (ctx) => {
+          return (() => {
             const _div5 = _tmpl$2();
-            _$insert(ctx, _div5, content);
+            _$insert(_div5, content);
             return _div5;
-          };
+          })();
         },
         name: 'Jason',
         ref: props.ref,
@@ -85,7 +85,7 @@ const template = (props) => {
       _Context$Consumer
     );
     return _div3;
-  };
+  })();
 };
 const template2 = _$createComponent(Child, {
   name: 'Jake',
@@ -143,7 +143,7 @@ const template9 = _$createComponent(_garbage, {
     return 'Hi';
   },
 });
-const template10 = (ctx) => {
+const template10 = (() => {
   const _div11 = _tmpl$5(),
     _Link = _div11.firstChild,
     _text2 = _Link.nextSibling,
@@ -217,8 +217,8 @@ const template10 = (ctx) => {
     _Link6
   );
   return _div11;
-};
-const template11 = (ctx) => {
+})();
+const template11 = (() => {
   const _div12 = _tmpl$6(),
     _Link7 = _div12.firstChild,
     _text7 = _Link7.nextSibling,
@@ -290,16 +290,15 @@ const template11 = (ctx) => {
     _Link12
   );
   return _div12;
-};
-const template12 = (ctx) => {
+})();
+const template12 = (() => {
   const _div13 = _tmpl$7(),
     _text10 = _div13.firstChild,
     _Link13 = _text10.nextSibling,
     _text11 = _Link13.nextSibling,
     _text12 = _text11.nextSibling,
     _text13 = _text12.nextSibling,
-    _Link14 = _text13.nextSibling,
-    _text14 = _Link14.nextSibling;
+    _Link14 = _text13.nextSibling;
   _$insert(
     ctx,
     _div13,
@@ -321,7 +320,7 @@ const template12 = (ctx) => {
     _Link14
   );
   return _div13;
-};
+})();
 class Template13 {
   render() {
     _$createComponent(Component, {
