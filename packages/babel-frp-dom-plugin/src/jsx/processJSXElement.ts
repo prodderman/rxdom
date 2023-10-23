@@ -7,14 +7,18 @@ import { JSXProcessResult, JSXAttributesResult } from '../types';
 import {
   getTagName,
   isJSXAttributePath,
-  isJSXExpressionContainerPath,
   unwrapFragment,
   isChildUseless,
   isJSXSpreadAttributePath,
 } from '../utils';
 
 import { processNode } from './processNode';
-import { parseAttribute, parseAttributeName } from '../attributes';
+import {
+  isEventHandler,
+  parseAttribute,
+  parseAttributeName,
+  parseEventHandler,
+} from '../attributes';
 
 export function processJSXElement(
   path: NodePath<t.JSXElement>
@@ -23,7 +27,7 @@ export function processJSXElement(
 
   const isVoidTag = VOID_ELEMENTS.includes(tagName);
   const id = path.scope.generateUidIdentifierBasedOnNode(path.node, 'el$');
-  const attributesResult = processTagAttributes(path, id);
+  const attributesResult = processAttributes(path, id);
 
   if (isVoidTag) {
     return {
@@ -34,7 +38,7 @@ export function processJSXElement(
     };
   }
 
-  const childrenResults = processTagChildren(path, id);
+  const childrenResults = processChildren(path, id);
 
   const childrenTemplate = childrenResults
     .map((child) => child.template)
@@ -86,7 +90,23 @@ export function processJSXElement(
   };
 }
 
-function processTagAttributes(
+function processChildren(
+  path: NodePath<t.JSXElement>,
+  parentId: t.Identifier
+): JSXProcessResult[] {
+  return path
+    .get('children')
+    .flatMap(unwrapFragment)
+    .filter(isChildUseless)
+    .map((child, _, children) => {
+      return processNode(child, {
+        parentId,
+        skipId: children.length === 1,
+      });
+    });
+}
+
+function processAttributes(
   path: NodePath<t.JSXElement>,
   nodeId: t.Identifier
 ): JSXAttributesResult {
@@ -114,14 +134,18 @@ function processTagAttributes(
 
     for (const attributePath of attributes) {
       if (isJSXAttributePath(attributePath)) {
-        const pair = parseAttributeName(attributePath);
-        const result = parseAttribute(pair, attributePath.get('value'));
+        const parsedName = parseAttributeName(attributePath);
+        const value = attributePath.get('value');
 
-        if (result.kind === 'boolean') {
-          template += ' ' + result.key;
-        } else if (result.kind === 'key-value') {
-          template += ' ' + `${result.key}="${result.value}"`;
-        } else if (result.kind === 'expression') {
+        const result = isEventHandler(parsedName.name)
+          ? parseEventHandler(parsedName, value)
+          : parseAttribute(parsedName, value);
+
+        if (result.template !== '') {
+          template += ' ' + result.template;
+        }
+
+        if (result.expression) {
           objectProperties.push(
             t.objectProperty(t.stringLiteral(result.key), result.expression)
           );
@@ -145,29 +169,62 @@ function processTagAttributes(
   let template = '';
   const expressions: t.Expression[] = [];
   for (const attributePath of singleAttributes) {
-    const pair = parseAttributeName(attributePath);
+    const parsedName = parseAttributeName(attributePath);
     const value = attributePath.get('value');
 
-    if (pair[0].startsWith('on')) {
-      const {
-        template: eventHandlerTemplate,
-        expressions: eventHandlerExpressions,
-      } = processAsEventHandler(nodeId, pair, value);
-      template += ' ' + eventHandlerTemplate;
-      expressions.push(...eventHandlerExpressions);
-    } else {
-      const result = parseAttribute(pair, value);
+    if (isEventHandler(parsedName.name)) {
+      const result = parseEventHandler(parsedName, value);
 
-      switch (result.kind) {
-        case 'void':
-          break;
-        case 'boolean':
-          template += ' ' + result.key;
-          break;
-        case 'key-value':
-          template += ' ' + `${result.key}="${result.value}"`;
-          break;
-        case 'expression':
+      if (result.template !== '') {
+        template += ' ' + result.template;
+      }
+
+      if (result.handler && result.expression) {
+        if (result.handler.resolved) {
+          expressions.push(
+            t.callExpression(
+              t.memberExpression(nodeId, t.identifier('addEventListener')),
+              [
+                t.stringLiteral(result.handler.eventName),
+                result.expression,
+                t.booleanLiteral(result.handler.capture),
+              ]
+            )
+          );
+        } else {
+          expressions.push(
+            t.callExpression(registerImport(path, 'addEventListener'), [
+              nodeId,
+              t.stringLiteral(result.handler.eventName),
+              result.expression,
+              t.booleanLiteral(result.handler.capture),
+            ])
+          );
+        }
+      }
+    } else {
+      const result = parseAttribute(parsedName, value);
+
+      if (result.template !== '') {
+        template += ' ' + result.template;
+      }
+
+      if (result.expression) {
+        if (parsedName.name === 'style') {
+          expressions.push(
+            t.callExpression(registerImport(attributePath, 'setStyle'), [
+              nodeId,
+              result.expression,
+            ])
+          );
+        } else if (parsedName.name === 'class') {
+          expressions.push(
+            t.callExpression(registerImport(attributePath, 'setClass'), [
+              nodeId,
+              result.expression,
+            ])
+          );
+        } else {
           expressions.push(
             t.callExpression(registerImport(attributePath, 'setAttribute'), [
               nodeId,
@@ -175,7 +232,7 @@ function processTagAttributes(
               result.expression,
             ])
           );
-          break;
+        }
       }
     }
   }
@@ -184,96 +241,4 @@ function processTagAttributes(
     template,
     expressions,
   };
-}
-
-function processTagChildren(
-  path: NodePath<t.JSXElement>,
-  parentId: t.Identifier
-): JSXProcessResult[] {
-  return path
-    .get('children')
-    .flatMap(unwrapFragment)
-    .filter(isChildUseless)
-    .map((child, _, children) => {
-      return processNode(child, {
-        parentId,
-        skipId: children.length === 1,
-      });
-    });
-}
-
-function processAsEventHandler(
-  nodeId: t.Identifier,
-  [key, namespace]: [string, string?],
-  path: NodePath<
-    | t.StringLiteral
-    | t.JSXElement
-    | t.JSXFragment
-    | t.JSXExpressionContainer
-    | null
-    | undefined
-  >
-): JSXAttributesResult {
-  if (
-    isJSXExpressionContainerPath(path) &&
-    !t.isJSXEmptyExpression(path.node.expression)
-  ) {
-    const resolved = canBeResolved(path);
-    const eventName = key.substring(2).toLocaleLowerCase();
-    const capture = namespace === 'capture';
-    if (resolved) {
-      return {
-        template: '',
-        expressions: [
-          t.callExpression(
-            t.memberExpression(nodeId, t.identifier('addEventListener')),
-            [
-              t.stringLiteral(eventName),
-              path.node.expression,
-              t.booleanLiteral(capture),
-            ]
-          ),
-        ],
-      };
-    }
-
-    if (t.isIdentifier(path.node.expression)) {
-      return {
-        template: '',
-        expressions: [
-          t.callExpression(registerImport(path, 'addEventListener'), [
-            nodeId,
-            t.stringLiteral(eventName),
-            path.node.expression,
-            t.booleanLiteral(capture),
-          ]),
-        ],
-      };
-    }
-
-    return {
-      template: '',
-      expressions: [],
-    };
-  }
-
-  return {
-    template: '',
-    expressions: [],
-  };
-}
-
-function canBeResolved(path: NodePath<t.JSXExpressionContainer>) {
-  let handler = path.get('expression').node as t.Expression | null | undefined;
-  while (t.isIdentifier(handler)) {
-    const binding = path.scope.getBinding(handler.name);
-    if (binding) {
-      if (t.isVariableDeclarator(binding.path.node)) {
-        handler = binding.path.node.init;
-      } else if (t.isFunctionDeclaration(binding.path.node)) {
-        return true;
-      } else return false;
-    } else return false;
-  }
-  return t.isFunction(handler);
 }

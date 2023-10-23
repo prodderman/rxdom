@@ -47,4 +47,6 @@ export type RuntimeFn =
   | 'createComponent'
   | 'addEventListener'
   | 'setAttribute'
-  | 'setAttributes';
+  | 'setAttributes'
+  | 'setStyle'
+  | 'setClass';

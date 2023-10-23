@@ -9,10 +9,10 @@ export function createReplacementNode(
   if (result.id && result.template !== '') {
     const templateId = registerTemplate(path, result.template);
 
-    const cloneNodeExpression = t.callExpression(templateId, []);
+    const templateExpression = t.callExpression(templateId, []);
 
     if (result.declarations.length === 0 && result.expressions.length === 0) {
-      return cloneNodeExpression;
+      return templateExpression;
     }
 
     return t.callExpression(
@@ -21,7 +21,7 @@ export function createReplacementNode(
         t.blockStatement([
           t.variableDeclaration(
             'const',
-            [t.variableDeclarator(result.id, cloneNodeExpression)].concat(
+            [t.variableDeclarator(result.id, templateExpression)].concat(
               result.declarations
             )
           ),

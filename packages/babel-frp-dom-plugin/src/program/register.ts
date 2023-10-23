@@ -17,6 +17,7 @@ export function registerTemplate(
 ): t.Identifier {
   const programScope = path.scope.getProgramParent();
   const data: TemplateStorage = programScope.getData('templates');
+
   if (data.has(template)) {
     return t.cloneNode(data.get(template)!, true);
   }
@@ -46,7 +47,10 @@ export function registerTemplate(
   return id;
 }
 
-export function registerImport(path: NodePath, fnName: RuntimeFn): t.Identifier {
+export function registerImport(
+  path: NodePath,
+  fnName: RuntimeFn
+): t.Identifier {
   const program = path.scope.getProgramParent();
   const config: Config = program.getData('config');
   const data: ImportStorage = program.getData('imports');

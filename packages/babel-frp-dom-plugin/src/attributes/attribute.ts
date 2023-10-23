@@ -2,53 +2,34 @@ import { NodePath } from '@babel/core';
 import * as t from '@babel/types';
 import { isJSXExpressionContainerPath } from '../utils';
 import { evalExpression } from '../expression';
+import { parseStyleExpression } from './style';
+import { ParsedAttributeName } from './name';
+import { AttributeValuePath } from './types';
+import { parseClassExpression } from './class';
 
-export type AttributeValuePath = NodePath<
-  | t.StringLiteral
-  | t.JSXElement
-  | t.JSXFragment
-  | t.JSXExpressionContainer
-  | null
-  | undefined
->;
-
-export type AttributeParseResult =
-  | {
-      kind: 'void';
-    }
-  | {
-      kind: 'boolean';
-      key: string;
-    }
-  | {
-      kind: 'key-value';
-      key: string;
-      value: string;
-    }
-  | {
-      kind: 'expression';
-      key: string;
-      expression: t.Expression;
-    };
+export type AttributeParsingResult = {
+  key: string;
+  template: string;
+  expression?: t.Expression;
+};
 
 export function parseAttribute(
-  [key]: [string, string?], // pair [name, namespace] <div namespace:attr={42} />
+  { key, name }: ParsedAttributeName,
   value: AttributeValuePath
-): AttributeParseResult {
+): AttributeParsingResult {
   // boolean attribute: <div attr />
   if (value.node === undefined || value.node === null) {
     return {
-      kind: 'boolean',
       key,
+      template: name,
     };
   }
 
   // name="value" attribute: <div attr="value" />
   if (t.isStringLiteral(value.node)) {
     return {
-      kind: 'key-value',
       key,
-      value: value.node.value,
+      template: `${name}="${value.node.value}"`,
     };
   }
 
@@ -59,7 +40,8 @@ export function parseAttribute(
     // <div attr={undefined} /> or <div attr={null} /> <div attr={} />
     if (evalResult.kind === 'void' || evalResult.kind === 'empty') {
       return {
-        kind: 'void',
+        key,
+        template: '',
       };
     }
 
@@ -68,34 +50,49 @@ export function parseAttribute(
     // <div attr={false} /> -> <div attr="false" />
     if (evalResult.kind === 'primitive') {
       return {
-        kind: 'key-value',
         key,
-        value: evalResult.value.toString(),
+        template: `${name}="${evalResult.value.toString()}"`,
+        expression: evalResult.expression,
       };
     }
 
-    if (evalResult.kind === 'non-primitive') {
+    if (name === 'class' || name === 'className') {
+      const result = parseClassExpression(evalResult);
+
       return {
-        kind: 'expression',
         key,
-        expression: evalResult.value,
+        template: result.template !== '' ? `class="${result.template}"` : '',
+        expression: result.expression,
+      };
+    }
+
+    if (name === 'style') {
+      const styleParsingResult = parseStyleExpression(evalResult);
+
+      return {
+        key,
+        template:
+          styleParsingResult.template !== ''
+            ? `style="${styleParsingResult.template}"`
+            : '',
+        expression: styleParsingResult.expression,
       };
     }
 
     /**
      * TODO: parse expression more precise
      * Example:
-     * 
+     *
      * <div attr={{ a: someVariable }}/>
-     * In this case I could throw an error 
-     * because any objects in attributes are not valid
+     * In this case I could throw an error
+     * because any objects in attributes except "style" and "class" are not valid
      */
     return {
-      kind: 'expression',
       key,
+      template: '',
       expression: evalResult.expression,
     };
   }
 
-  throw new Error(`Unexpected attribute key-value ${key}=${value.node.type}`);
+  throw new Error(`Unexpected attribute: ${key}=${value.node.type}`);
 }

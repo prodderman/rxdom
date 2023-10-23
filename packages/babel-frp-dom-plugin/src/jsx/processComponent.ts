@@ -75,7 +75,7 @@ function processComponentProps(
         throw new Error('Spread is not implemented');
       }
 
-      const [key] = parseAttributeName(attr as NodePath<t.JSXAttribute>);
+      const { key } = parseAttributeName(attr as NodePath<t.JSXAttribute>);
       const value = attr.node.value;
 
       if (value === null || value === undefined) {

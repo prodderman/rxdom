@@ -3,29 +3,29 @@ import { PrimitiveType } from '../types';
 import { NodePath } from '@babel/core';
 import { isExpressionPath, isPrimitive } from '../utils';
 
-type VoidEvalResult = {
+export type VoidEvalResult = {
   kind: 'void';
 };
 
-type EmptyResult = {
+export type EmptyResult = {
   kind: 'empty';
   value: undefined | null;
   expression: t.Expression;
 };
 
-type PrimitiveEvalResult = {
+export type PrimitiveEvalResult = {
   kind: 'primitive';
   value: Exclude<PrimitiveType, null | undefined>;
   expression: t.Expression;
 };
 
-type NonPrimitiveEvalResult = {
+export type NonPrimitiveEvalResult = {
   kind: 'non-primitive';
-  value: t.Expression; // objects, functions, etc.
+  value: object; // objects, functions, etc.
   expression: t.Expression;
 };
 
-type UnresolvedResult = {
+export type UnresolvedResult = {
   kind: 'unresolved';
   expression: t.Expression;
 };
@@ -62,10 +62,12 @@ export function evalExpression(
 
       return {
         kind: 'non-primitive',
-        value: expression.node,
+        value: evalResult.value,
         expression: expression.node,
       };
     }
+
+    console.log(expression.node, evalResult.deopt?.node);
 
     return {
       kind: 'unresolved',

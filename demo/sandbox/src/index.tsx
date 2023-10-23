@@ -1,4 +1,4 @@
-import { render } from '@frp-dom/runtime';
+import { mount } from '@frp-dom/runtime';
 import { Atom } from '@frp-dom/data';
 import './styles.css';
 
@@ -7,7 +7,7 @@ const count = Atom.new(0);
 
 const App = () => {
   return (
-    <main class=<div />>
+    <main class="main">
       <div class="counter">
         <button class="decrement" onclick={() => count.modify((v) => v - 1)}>
           -
@@ -21,4 +21,4 @@ const App = () => {
   );
 };
 
-render(() => <App />, root);
+mount(<App />, root);

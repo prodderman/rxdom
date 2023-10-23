@@ -1,2 +1,3 @@
-export * from './attribute'
-export * from './name'
+export * from './attribute';
+export * from './eventHandler';
+export * from './name';
