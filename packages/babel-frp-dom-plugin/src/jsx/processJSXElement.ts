@@ -116,14 +116,14 @@ function processAttributes(
 
   // <div {...spread} />
   if (spreads.length === 1 && singleAttributes.length === 0) {
-    const setAttributesExpression = t.callExpression(
-      registerImport(path, 'setAttributes'),
+    const spreadAttributesExpression = t.callExpression(
+      registerImport(path, 'spreadAttributes'),
       [nodeId, spreads[0].node.argument]
     );
 
     return {
       template: '',
-      expressions: [setAttributesExpression],
+      expressions: [spreadAttributesExpression],
     };
   }
 
@@ -155,14 +155,14 @@ function processAttributes(
       }
     }
 
-    const setAttributesExpression = t.callExpression(
-      registerImport(path, 'setAttributes'),
+    const spreadAttributesExpression = t.callExpression(
+      registerImport(path, 'spreadAttributes'),
       [nodeId, t.objectExpression(objectProperties)]
     );
 
     return {
       template,
-      expressions: [setAttributesExpression],
+      expressions: [spreadAttributesExpression],
     };
   }
 
@@ -193,7 +193,7 @@ function processAttributes(
           );
         } else {
           expressions.push(
-            t.callExpression(registerImport(path, 'addEventListener'), [
+            t.callExpression(registerImport(path, 'setEventListener'), [
               nodeId,
               t.stringLiteral(result.handler.eventName),
               result.expression,
@@ -220,6 +220,13 @@ function processAttributes(
         } else if (parsedName.name === 'class') {
           expressions.push(
             t.callExpression(registerImport(attributePath, 'setClass'), [
+              nodeId,
+              result.expression,
+            ])
+          );
+        } else if (parsedName.name === 'value') {
+          expressions.push(
+            t.callExpression(registerImport(attributePath, 'setValue'), [
               nodeId,
               result.expression,
             ])

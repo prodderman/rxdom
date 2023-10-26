@@ -475,16 +475,16 @@ describe('runtime', () => {
       runInContext(context, () => insert(parent, atom2), context);
       expect(parent.childNodes.length).toBe(2);
       expect(parent.innerHTML).toBe('42text');
-      expect(atom1.meta.observers).toBe(1);
-      expect(atom2.meta.observers).toBe(1);
+      expect(atom1.observers).toBe(1);
+      expect(atom2.observers).toBe(1);
       expect(context.subscriptions.size).toBe(2);
 
       atom1.set('new text');
       atom2.set(42);
       expect(parent.childNodes.length).toBe(2);
       expect(parent.innerHTML).toBe('new text42');
-      expect(atom1.meta.observers).toBe(1);
-      expect(atom2.meta.observers).toBe(1);
+      expect(atom1.observers).toBe(1);
+      expect(atom2.observers).toBe(1);
       expect(context.subscriptions.size).toBe(2);
     });
 
@@ -498,34 +498,34 @@ describe('runtime', () => {
       runInContext(context, () => insert(parent, parentAtom), context);
       expect(parent.childNodes.length).toBe(1);
       expect(parent.innerHTML).toBe('42');
-      expect(parentAtom.meta.observers).toBe(1);
-      expect(atom1.meta.observers).toBe(1);
-      expect(atom2.meta.observers).toBe(0);
+      expect(parentAtom.observers).toBe(1);
+      expect(atom1.observers).toBe(1);
+      expect(atom2.observers).toBe(0);
       expect(context.subscriptions.size).toBe(1);
 
       atom1.set('atom1 subscribed');
       expect(parent.childNodes.length).toBe(1);
       expect(parent.innerHTML).toBe('atom1 subscribed');
-      expect(parentAtom.meta.observers).toBe(1);
-      expect(atom1.meta.observers).toBe(1);
-      expect(atom2.meta.observers).toBe(0);
+      expect(parentAtom.observers).toBe(1);
+      expect(atom1.observers).toBe(1);
+      expect(atom2.observers).toBe(0);
       expect(context.subscriptions.size).toBe(1);
 
       parentAtom.set(atom2);
       atom1.set('atom1 unsubscribed');
       expect(parent.childNodes.length).toBe(1);
       expect(parent.innerHTML).toBe('text');
-      expect(parentAtom.meta.observers).toBe(1);
-      expect(atom1.meta.observers).toBe(0);
-      expect(atom2.meta.observers).toBe(1);
+      expect(parentAtom.observers).toBe(1);
+      expect(atom1.observers).toBe(0);
+      expect(atom2.observers).toBe(1);
       expect(context.subscriptions.size).toBe(1);
 
       atom2.set('atom2 subscribed');
       expect(parent.childNodes.length).toBe(1);
       expect(parent.innerHTML).toBe('atom2 subscribed');
-      expect(parentAtom.meta.observers).toBe(1);
-      expect(atom1.meta.observers).toBe(0);
-      expect(atom2.meta.observers).toBe(1);
+      expect(parentAtom.observers).toBe(1);
+      expect(atom1.observers).toBe(0);
+      expect(atom2.observers).toBe(1);
       expect(context.subscriptions.size).toBe(1);
     });
 
@@ -537,13 +537,13 @@ describe('runtime', () => {
       runInContext(context, () => insert(parent, atom), context);
       expect(parent.childNodes.length).toBe(3);
       expect(parent.innerHTML).toBe('1242');
-      expect(atom.meta.observers).toBe(1);
+      expect(atom.observers).toBe(1);
       expect(context.subscriptions.size).toBe(1);
 
       atom.set(['foo', 'bar']);
       expect(parent.childNodes.length).toBe(2);
       expect(parent.innerHTML).toBe('foobar');
-      expect(atom.meta.observers).toBe(1);
+      expect(atom.observers).toBe(1);
       expect(context.subscriptions.size).toBe(1);
     });
 
@@ -556,30 +556,30 @@ describe('runtime', () => {
     //   runInContext(newContext(), () => insert(parent, parentAtom), null)
     //   expect(parent.childNodes.length).toBe(6);
     //   expect(parent.innerHTML).toBe('text child foo text child bar');
-    //   expect(atomChild1.meta.observers).toBe(1);
-    //   expect(atomChild2.meta.observers).toBe(1);
-    //   expect(parentAtom.meta.observers).toBe(1);
+    //   expect(atomChild1.observers).toBe(1);
+    //   expect(atomChild2.observers).toBe(1);
+    //   expect(parentAtom.observers).toBe(1);
 
     //   atomChild2.set(['bar ', 'child']);
     //   expect(parent.childNodes.length).toBe(6);
     //   expect(parent.innerHTML).toBe('text child foo text bar child');
-    //   expect(atomChild1.meta.observers).toBe(1);
-    //   expect(atomChild2.meta.observers).toBe(1);
-    //   expect(parentAtom.meta.observers).toBe(1);
+    //   expect(atomChild1.observers).toBe(1);
+    //   expect(atomChild2.observers).toBe(1);
+    //   expect(parentAtom.observers).toBe(1);
 
     //   atomChild1.set(['foo ', 'child']);
     //   expect(parent.childNodes.length).toBe(6);
     //   expect(parent.innerHTML).toBe('text foo child text bar child');
-    //   expect(atomChild1.meta.observers).toBe(1);
-    //   expect(atomChild2.meta.observers).toBe(1);
-    //   expect(parentAtom.meta.observers).toBe(1);
+    //   expect(atomChild1.observers).toBe(1);
+    //   expect(atomChild2.observers).toBe(1);
+    //   expect(parentAtom.observers).toBe(1);
 
     //   parentAtom.set(['text ', atomChild2]);
     //   expect(parent.childNodes.length).toBe(3);
     //   expect(parent.innerHTML).toBe('text bar child');
-    //   expect(atomChild1.meta.observers).toBe(0);
-    //   expect(atomChild2.meta.observers).toBe(1);
-    //   expect(parentAtom.meta.observers).toBe(1);
+    //   expect(atomChild1.observers).toBe(0);
+    //   expect(atomChild2.observers).toBe(1);
+    //   expect(parentAtom.observers).toBe(1);
     // });
   });
 });

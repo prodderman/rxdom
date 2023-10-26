@@ -8,8 +8,9 @@ html, body, #root {
 }
 
 .main {
-  display: flex;
+  display: grid;
   justify-content: center;
+  justify-items: center;
   align-items: center;
   height: 100%;
 }
@@ -28,9 +29,7 @@ html, body, #root {
 }
 
 .box {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  text-align: center;
   font-size: 30px;
   font-weight: bold;
   width: 100px;

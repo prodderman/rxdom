@@ -1,16 +1,11 @@
 import * as t from '@babel/types';
 import { NonPrimitiveEvalResult, UnresolvedResult } from '../expression';
+import { toKebabCase } from '../utils';
 
 type StyleParsingResult = {
   template: string;
   expression?: t.Expression;
 };
-
-const toKebabCase = (str: string) =>
-  str.replace(
-    /[A-Z]+(?![a-z])|[A-Z]/g,
-    ($, ofs) => (ofs ? '-' : '') + $.toLowerCase()
-  );
 
 export function parseStyleExpression(
   evalResult: NonPrimitiveEvalResult | UnresolvedResult

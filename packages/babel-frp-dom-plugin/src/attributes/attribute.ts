@@ -1,4 +1,3 @@
-import { NodePath } from '@babel/core';
 import * as t from '@babel/types';
 import { isJSXExpressionContainerPath } from '../utils';
 import { evalExpression } from '../expression';

@@ -45,8 +45,9 @@ export type RuntimeFn =
   | 'insert'
   | 'template'
   | 'createComponent'
-  | 'addEventListener'
+  | 'setEventListener'
   | 'setAttribute'
-  | 'setAttributes'
+  | 'spreadAttributes'
   | 'setStyle'
-  | 'setClass';
+  | 'setClass'
+  | 'setValue';

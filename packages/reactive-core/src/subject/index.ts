@@ -1,12 +1,11 @@
-import { Subscripable, Observer, Meta, PropertyMeta } from '@frp-dom/reactive-core';
 import { scheduler } from '../scheduler';
+import { Observer, Subscripable } from '../subscription';
 
-export interface Subject<A>
-  extends Subscripable<A>,
-    Observer<A>,
-    Meta<PropertyMeta> {}
+export interface Subject<A> extends Subscripable<A>, Observer<A> {
+  observers: number;
+}
 
-export function create<A = void>(name = 'subject'): Subject<A> {
+export function create<A = void>(): Subject<A> {
   const listeners = new Set<Observer<A>>();
   const pendingAdditions = new Set<Observer<A>>();
   let lastTick = -1;
@@ -44,11 +43,8 @@ export function create<A = void>(name = 'subject'): Subject<A> {
         },
       };
     },
-    get meta() {
-      return {
-        name,
-        observers: listeners.size,
-      };
+    get observers() {
+      return listeners.size;
     },
   };
 }

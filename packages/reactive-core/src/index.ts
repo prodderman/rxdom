@@ -1,95 +1,59 @@
-export interface Observer<A = void, Extra extends unknown[] = []> {
-  readonly next: (value: A, ...extra: Extra) => void;
-}
+import { Subject } from './subject';
+import {
+  Observer,
+  Subscripable,
+  Subscription,
+  SubscriptionLike,
+  newSubscription,
+} from './subscription';
 
-export type Unsubscribable = Subscription | SubscriptionLike | (() => void);
+export type { Observer, Subscripable, SubscriptionLike, Subscription };
+export { scheduler } from './scheduler';
 
-export interface SubscriptionLike {
-  unsubscribe(): void;
-}
-
-export interface Subscription extends SubscriptionLike {
-  add(disposer: Unsubscribable): void;
-}
-
-export interface Subscripable<A> {
-  subscribe(observer: Observer<A>): SubscriptionLike;
-}
-
-export interface Meta<M> {
-  get meta(): M;
-}
-
-export type PropertyMeta = { name: string; observers: number };
+type PropertyMeta = {
+  name?: string;
+  observers: number;
+  [propertySymbol]: void;
+};
 
 const propertySymbol = Symbol('property');
-const EMPTY_META = { name: 'anonym property', observers: 0 };
 
-export interface Property<A> extends Subscripable<A>, Meta<PropertyMeta> {
+export interface Property<A> extends Subscripable<A>, PropertyMeta {
   get(): A;
   subscribe(observer: Observer<A>): Subscription;
-  [propertySymbol]: void;
 }
 
-function runDisposer(disposer: Unsubscribable) {
-  if (typeof disposer === 'function') {
-    disposer();
-  } else {
-    disposer.unsubscribe();
-  }
-}
+export type PropertyArgs<A> = {
+  get: () => A;
+  subscribe?: (observer: Observer<A>) => SubscriptionLike;
+  name?: string;
+};
 
-export function newSubscription(
-  initialTeardown?: Unsubscribable
-): Subscription {
-  let additionalDisposers: Set<Unsubscribable> | undefined = undefined;
-  let disposed = false;
+type PropertyValue<P> = P extends Property<infer V> ? V : never;
 
-  return {
-    unsubscribe() {
-      if (!disposed) {
-        if (initialTeardown) {
-          runDisposer(initialTeardown);
-        }
+export function newProperty<A extends Property<unknown>>(
+  ctor: (
+    observer: Subject<PropertyValue<A>>
+  ) => PropertyArgs<unknown> & Omit<A, keyof Property<PropertyValue<A>>>
+): A {
+  const observer = Subject.new<PropertyValue<A>>();
+  const { subscribe = observer.subscribe, get, name, ...rest } = ctor(observer);
 
-        if (additionalDisposers) {
-          for (const disposer of additionalDisposers) {
-            runDisposer(disposer);
-          }
-          additionalDisposers = undefined;
-        }
-        disposed = true;
-      }
+  return Object.assign<Property<unknown>, object>(
+    {
+      get,
+      subscribe: (listener) => newSubscription(subscribe(listener)),
+      name,
+      get observers() {
+        return observer.observers;
+      },
+      [propertySymbol]: void 0,
     },
-    add(disposer) {
-      if (disposed) {
-        runDisposer(disposer);
-      } else {
-        (additionalDisposers ??= new Set()).add(disposer);
-        if ('add' in disposer) {
-          disposer.add(() => additionalDisposers?.delete(disposer));
-        }
-      }
-    },
-  };
-}
-
-export function propertyFrom<A>(
-  get: () => A,
-  subscribe: (observer: Observer<A>) => SubscriptionLike,
-  getMeta?: () => PropertyMeta
-): Property<A> {
-  return {
-    get,
-    subscribe: (listener) => newSubscription(subscribe(listener)),
-    get meta() {
-      return getMeta?.() ?? EMPTY_META;
-    },
-    [propertySymbol]: void 0,
-  };
+    rest
+  ) as A;
 }
 
 export const isProperty = (entity: unknown): entity is Property<unknown> =>
   typeof entity === 'object' && entity !== null && propertySymbol in entity;
 
-export const $ = propertyFrom;
+export const $ = newProperty;

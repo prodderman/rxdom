@@ -1,7 +1,7 @@
 import type { Observer, Property } from '@frp-dom/reactive-core';
 import { getCurrentContext, newContext, runInContext } from '../context';
 
-export function bindProperty(child: Property<any>, effect: () => void) {
+export function bindProperty(property: Property<any>, effect: () => void) {
   const parentContext = getCurrentContext();
   const thisContext = newContext();
 
@@ -14,20 +14,19 @@ export function bindProperty(child: Property<any>, effect: () => void) {
     }
   };
 
-  let tickImmediately = false;
   const observer: Observer<any> = {
     next: () => {
-      tickImmediately = true;
       dispose();
       runInContext(thisContext, effect, parentContext);
     },
   };
 
-  const thisSubscription = child.subscribe(observer);
+  /**
+   * @TODO schedule subscriptions so that they fire after DOM manipulations
+   */
+  const thisSubscription = property.subscribe(observer);
   thisSubscription.add(dispose);
   parentContext.subscriptions.add(thisSubscription);
 
-  if (!tickImmediately) {
-    runInContext(thisContext, effect, parentContext);
-  }
+  runInContext(thisContext, effect, parentContext);
 }

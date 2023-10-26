@@ -18,21 +18,21 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@frp-dom/frp-dom-transformer": [
-        "dist/packages/babel-frp-dom-plugin/index.js"
-      ],
       "@frp-dom/data": [
         "packages/data/src/index.ts"
       ],
       "@frp-dom/enumerate": [
         "packages/enumerate/src/index.ts"
       ],
+      "@frp-dom/frp-dom-transformer": [
+        "dist/packages/babel-frp-dom-plugin/index.js"
+      ],
       "@frp-dom/reactive-core": [
         "packages/reactive-core/src/index.ts"
       ],
       "@frp-dom/runtime": [
         "packages/runtime/src/index.ts"
-      ]
+      ],
     }
   },
   "exclude": [

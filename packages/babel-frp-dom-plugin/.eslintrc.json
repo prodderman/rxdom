@@ -21,15 +21,7 @@
       "files": [
         "*.ts",
         "*.tsx"
-      ],
-      "rules": {
-        "@typescript-eslint/switch-exhaustiveness-check": "error"
-      },
-      "parserOptions": {
-        "project": [
-          "./packages/babel-frp-dom-plugin/tsconfig.lib.json"
-        ]
-      }
+      ]
     },
     {
       "files": [

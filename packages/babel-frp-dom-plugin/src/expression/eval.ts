@@ -67,8 +67,6 @@ export function evalExpression(
       };
     }
 
-    console.log(expression.node, evalResult.deopt?.node);
-
     return {
       kind: 'unresolved',
       expression: expression.node,

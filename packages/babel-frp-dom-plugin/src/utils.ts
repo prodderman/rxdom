@@ -131,6 +131,14 @@ function trimWhitespace(text: string) {
   return text;
 }
 
+const camelCaseRegexp = /[A-Z]+(?![a-z])|[A-Z]/g;
+
+export function toKebabCase(str: string) {
+  return str.replace(camelCaseRegexp, ($, position, str) => {
+    return (position && str[position - 1] !== '-' ? '-' : '') + $.toLowerCase();
+  });
+}
+
 export function toLiteral(value: PrimitiveType) {
   if (typeof value === 'string') {
     return t.stringLiteral(value);

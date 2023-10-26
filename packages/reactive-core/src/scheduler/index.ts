@@ -60,8 +60,8 @@ export const newScheduler = (): Scheduler => {
 
   function processQueue() {
     for (const task of taskQueue) {
-      task();
       taskQueue.delete(task);
+      task();
     }
   }
 
