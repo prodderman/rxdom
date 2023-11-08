@@ -1,11 +1,20 @@
-const width = Atom.new('20px');
-const color = Atom.new('black');
-const backgroundColor = Atom.new('red');
+const root = document.getElementById('root');
 
-const styles = { width, color, backgroundColor };
+const Child1 = ({ setFlag }) => {
+  setFlag(false);
+  return <div>Child 1</div>;
+};
 
-<div
-  style={{
-    ...styles,
-  }}
-></div>;
+const Child2 = () => {
+  return <div>Child 2</div>;
+};
+
+const flag = Atom.new(true);
+
+const App = () => {
+  return (
+    <Cond if={flag} then={<Child1 setFlag={flag.set} />} else={<Child2 />} />
+  );
+};
+
+mount(<App />, root);

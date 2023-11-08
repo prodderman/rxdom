@@ -10,7 +10,7 @@ import {
   getTagName,
   isComponent,
   isJSXElementPath,
-  processArrayChildren,
+  processChildren,
 } from '../utils';
 
 export function processNode(
@@ -27,7 +27,7 @@ export function processNode(
   }
 
   if (t.isJSXFragment(path.node)) {
-    const children = processArrayChildren(path as NodePath<t.JSXFragment>);
+    const children = processChildren(path as NodePath<t.JSXFragment>);
     return {
       id: null,
       template: '',

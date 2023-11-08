@@ -18,6 +18,9 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "@frp-dom/condition": [
+        "packages/condition/src/index.ts"
+      ],
       "@frp-dom/data": [
         "packages/data/src/index.ts"
       ],
@@ -33,6 +36,9 @@
       "@frp-dom/runtime": [
         "packages/runtime/src/index.ts"
       ],
+      "@frp-dom/integration-test": [
+        "packages/integration-test/src/index.ts"
+      ]
     }
   },
   "exclude": [

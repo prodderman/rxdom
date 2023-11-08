@@ -118,7 +118,7 @@ function processAttributes(
   if (spreads.length === 1 && singleAttributes.length === 0) {
     const spreadAttributesExpression = t.callExpression(
       registerImport(path, 'spreadAttributes'),
-      [nodeId, spreads[0].node.argument]
+      [t.identifier('context'), nodeId, spreads[0].node.argument]
     );
 
     return {
@@ -157,7 +157,7 @@ function processAttributes(
 
     const spreadAttributesExpression = t.callExpression(
       registerImport(path, 'spreadAttributes'),
-      [nodeId, t.objectExpression(objectProperties)]
+      [t.identifier('context'), nodeId, t.objectExpression(objectProperties)]
     );
 
     return {
@@ -194,6 +194,7 @@ function processAttributes(
         } else {
           expressions.push(
             t.callExpression(registerImport(path, 'setEventListener'), [
+              t.identifier('context'),
               nodeId,
               t.stringLiteral(result.handler.eventName),
               result.expression,

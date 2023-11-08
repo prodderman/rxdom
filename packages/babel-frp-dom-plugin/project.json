@@ -5,7 +5,21 @@
   "projectType": "library",
   "targets": {
     "build": {
-      "command": "webpack --config packages/babel-frp-dom-plugin/webpack.config.ts"
+      "executor": "@nrwl/esbuild:esbuild",
+      "outputs": [
+        "{options.outputPath}"
+      ],
+      "options": {
+        "outputPath": "dist/packages/babel-frp-dom-plugin",
+        "main": "packages/babel-frp-dom-plugin/src/index.ts",
+        "tsConfig": "packages/babel-frp-dom-plugin/tsconfig.lib.json",
+        "format": [
+          "cjs"
+        ],
+        "assets": [
+          "packages/babel-frp-dom-plugin/*.md"
+        ]
+      }
     },
     "lint": {
       "executor": "@nrwl/linter:eslint",

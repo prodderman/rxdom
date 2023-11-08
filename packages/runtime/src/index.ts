@@ -1,7 +1,8 @@
 export { mount } from './mount';
 export { template } from './template';
-export { createComponent } from './component';
+export { withEffect, effect } from './effect';
 export { insert } from './insert';
+export { createComponent } from './component';
 export {
   setAttribute,
   spreadAttributes,
@@ -10,4 +11,4 @@ export {
   setValue,
   setEventListener,
 } from './attributes';
-export type { JSX } from './jsx-runtime/jsx';
+export type { JSX } from './jsx-runtime';

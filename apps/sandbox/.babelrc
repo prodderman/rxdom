@@ -6,10 +6,7 @@
     [
       "../../dist/packages/babel-frp-dom-plugin",
       {
-        "moduleName": "@frp-dom/runtime",
-        "extensions": [
-          "For"
-        ]
+        "moduleName": "@frp-dom/runtime"
       }
     ]
   ]

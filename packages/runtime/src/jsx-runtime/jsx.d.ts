@@ -1,20 +1,25 @@
-/* eslint-disable */
-import type { Property } from '@frp-dom/reactive-core';
+import { Property } from '@frp-dom/reactive-core';
+import { Effectful } from '../effect';
 
+/* eslint-disable */
 type DOMElement = Element;
 
-type DynamicValue<T = unknown> = T | Property<T>;
-
 type DynamicRecord<T> = {
-  [P in keyof T]: P extends 'children' ? T[P] : DynamicValue<T[P]>;
+  [P in keyof T]: P extends 'children' ? T[P] : T[P] | Property<T[P]>;
 };
 
 export namespace JSX {
-  type Element = DynamicValue<
-    Node | ArrayElement | string | number | boolean | null | undefined
-  >;
-
-  type ArrayElement = Array<Element>;
+  type Element =
+    | string
+    | number
+    | boolean
+    | null
+    | undefined
+    | Node
+    | Array<Element>
+    | (() => Element)
+    | Effectful
+    | Property<Element>;
 
   interface AriaAttributes {
     /** Identifies the currently active element when DOM focus is on a composite widget, textbox, group, or application. */

@@ -1,7 +1,7 @@
 import { Atom } from '@frp-dom/data';
 import { template } from '../template';
 import { setAttribute } from './index';
-import { newContext, runInContext } from '../context';
+import { createContext } from '../context';
 
 describe('attributes', () => {
   const makeDiv = template('<div/>');
@@ -11,50 +11,48 @@ describe('attributes', () => {
 
   describe('setAttribute', () => {
     it('should just set attribute', () => {
+      const context = createContext();
       const div = makeDiv();
-      setAttribute(div, 'tabIndex', 42);
+      setAttribute(context, div, 'tabIndex', 42);
       expect(div.getAttribute('tabIndex')).toBe('42');
-      setAttribute(div, 'anyAttribute', 'any value');
+      setAttribute(context, div, 'anyAttribute', 'any value');
       expect(div.getAttribute('anyAttribute')).toBe('any value');
     });
 
     it('should remove attribute if value is null or undefined', () => {
+      const context = createContext();
       const div = makeDiv();
-      setAttribute(div, 'attribute1', 'value');
-      setAttribute(div, 'attribute2', 'value');
+      setAttribute(context, div, 'attribute1', 'value');
+      setAttribute(context, div, 'attribute2', 'value');
       expect(div.getAttribute('attribute1')).toBe('value');
       expect(div.getAttribute('attribute2')).toBe('value');
-      setAttribute(div, 'attribute1', null);
-      setAttribute(div, 'attribute2', undefined);
+      setAttribute(context, div, 'attribute1', null);
+      setAttribute(context, div, 'attribute2', undefined);
       expect(div.getAttribute('attribute1')).toBe(null);
       expect(div.getAttribute('attribute2')).toBe(null);
     });
 
     it('should toggle attribute if value is boolean', () => {
+      const context = createContext();
       const div = makeDiv();
-      setAttribute(div, 'attribute', true);
+      setAttribute(context, div, 'attribute', true);
       expect(div.getAttribute('attribute')).toBe('');
-      setAttribute(div, 'attribute', true);
+      setAttribute(context, div, 'attribute', true);
       expect(div.getAttribute('attribute')).toBe('');
 
-      setAttribute(div, 'attribute', false);
+      setAttribute(context, div, 'attribute', false);
       expect(div.getAttribute('attribute1')).toBe(null);
-      setAttribute(div, 'attribute', false);
+      setAttribute(context, div, 'attribute', false);
       expect(div.getAttribute('attribute2')).toBe(null);
     });
 
     it('should bind properties', () => {
-      const context = newContext();
+      const context = createContext();
       const atom = Atom.new<any>('value');
       const div = makeDiv();
 
-      runInContext(
-        context,
-        () => setAttribute(div, 'attribute', atom),
-        context
-      );
-      expect(div.getAttribute('attribute')).toBe('value');
-      expect(atom.observers).toBe(1);
+      setAttribute(context, div, 'attribute', atom),
+        expect(div.getAttribute('attribute')).toBe('value');
 
       atom.set(42);
       expect(div.getAttribute('attribute')).toBe('42');

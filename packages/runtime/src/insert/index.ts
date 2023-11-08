@@ -1,23 +1,27 @@
 import { isProperty } from '@frp-dom/reactive-core';
-import { bindProperty } from '../bind';
+import { isEffectful } from '../effect';
+import { createEffectfulNode, createReactiveNode, Context } from '../context';
 
 export type MountableElement = ParentNode;
 
 export function insert(
+  context: Context,
   parent: MountableElement,
   child: any,
   current?: any
 ): any {
-  return insertExpression(parent, child, current);
+  return insertExpression(context, parent, child, current);
 }
 
 function insertExpression(
+  context: Context,
   parentNode: MountableElement,
   child: any,
   current?: any
 ): any {
   const t = typeof child,
     isCurrentArray = current && Array.isArray(current);
+
   switch (true) {
     case t === 'string' || t === 'number' || t === 'bigint' || t === 'symbol': {
       if (t !== 'string') child = child.toString();
@@ -29,17 +33,28 @@ function insertExpression(
       if (isCurrentArray) current = cleanChildren(current);
       return insertText(parentNode, current);
     }
+    case t === 'function': {
+      while (typeof child === 'function') child = child(context);
+      return insertExpression(context, parentNode, child, current);
+    }
     case isProperty(child): {
-      bindProperty(
-        child,
-        () => (current = insertExpression(parentNode, child.get(), current))
-      );
-
+      createReactiveNode(context, child, (newContext) => {
+        current = insertExpression(
+          newContext,
+          parentNode,
+          child.get(),
+          current
+        );
+      });
       return current;
+    }
+    case isEffectful(child): {
+      createEffectfulNode(context, child[1]);
+      return insertExpression(context, parentNode, child[0], current);
     }
     case Array.isArray(child): {
       const array: Element[] = [];
-      normalizeIncomingArray(parentNode, array, child, current);
+      normalizeIncomingArray(context, parentNode, array, child, current);
 
       if (array.length === 0) {
         isCurrentArray && (current = cleanChildren(current));
@@ -76,6 +91,7 @@ function insertExpression(
 }
 
 function normalizeIncomingArray(
+  context: Context,
   parentNode: MountableElement,
   buffer: any[],
   child: any[],
@@ -91,14 +107,19 @@ function normalizeIncomingArray(
     } else if (item.nodeType) {
       buffer.push(item);
     } else if (Array.isArray(item)) {
-      normalizeIncomingArray(parentNode, buffer, item, prev);
+      normalizeIncomingArray(context, parentNode, buffer, item, prev);
     } else if (isProperty(item)) {
-      // TODO: works incorrectly
+      // TODO: works incorrectly, fix it
       const chunkStart = buffer.length;
       let prevChunkLength = 0;
       let prevInsertion: any = undefined;
-      bindProperty(item, () => {
-        prevInsertion = insertExpression(parentNode, item.get(), prevInsertion);
+      createReactiveNode(context, item, (newContext) => {
+        prevInsertion = insertExpression(
+          newContext,
+          parentNode,
+          item.get(),
+          prevInsertion
+        );
         buffer.splice(
           chunkStart,
           prevChunkLength,

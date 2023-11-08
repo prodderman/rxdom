@@ -62,7 +62,7 @@
     "ts-node": "10.9.1",
     "tsconfig-paths-webpack-plugin": "^4.0.0",
     "tslib": "^2.6.2",
-    "typescript": "~5.2.2",
+    "typescript": "5.3.1-rc",
     "validate-html-nesting": "^1.2.1",
     "webpack": "^5.75.0",
     "webpack-cli": "^5.0.1",

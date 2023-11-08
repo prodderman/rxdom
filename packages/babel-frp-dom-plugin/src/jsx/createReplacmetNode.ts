@@ -15,21 +15,18 @@ export function createReplacementNode(
       return templateExpression;
     }
 
-    return t.callExpression(
-      t.arrowFunctionExpression(
-        [],
-        t.blockStatement([
-          t.variableDeclaration(
-            'const',
-            [t.variableDeclarator(result.id, templateExpression)].concat(
-              result.declarations
-            )
-          ),
-          ...result.expressions.map(t.expressionStatement),
-          t.returnStatement(result.id),
-        ])
-      ),
-      []
+    return t.arrowFunctionExpression(
+      [t.identifier('context')],
+      t.blockStatement([
+        t.variableDeclaration(
+          'const',
+          [t.variableDeclarator(result.id, templateExpression)].concat(
+            result.declarations
+          )
+        ),
+        ...result.expressions.map(t.expressionStatement),
+        t.returnStatement(result.id),
+      ])
     );
   }
 

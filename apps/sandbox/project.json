@@ -2,7 +2,7 @@
   "name": "sandbox",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
-  "sourceRoot": "demo/sandbox/src",
+  "sourceRoot": "apps/sandbox/src",
   "tags": [],
   "targets": {
     "build": {
@@ -12,15 +12,15 @@
       ],
       "defaultConfiguration": "production",
       "options": {
-        "outputPath": "dist/demo/sandbox",
+        "outputPath": "dist/apps/sandbox",
         "compiler": "babel",
-        "main": "demo/sandbox/src/main.ts",
-        "tsConfig": "demo/sandbox/tsconfig.app.json",
-        "webpackConfig": "demo/sandbox/webpack.config.js",
+        "main": "apps/sandbox/src/main.ts",
+        "tsConfig": "apps/sandbox/tsconfig.app.json",
+        "webpackConfig": "apps/sandbox/webpack.config.js",
         "assets": [
-          "demo/sandbox/src/favicon.ico"
+          "apps/sandbox/src/favicon.ico"
         ],
-        "index": "demo/sandbox/src/index.html",
+        "index": "apps/sandbox/src/index.html",
         "baseHref": "/",
         "scripts": []
       },
@@ -34,15 +34,15 @@
           "vendorChunk": false,
           "fileReplacements": [
             {
-              "replace": "demo/sandbox/src/environments/environment.ts",
-              "with": "demo/sandbox/src/environments/environment.prod.ts"
+              "replace": "apps/sandbox/src/environments/environment.ts",
+              "with": "apps/sandbox/src/environments/environment.prod.ts"
             }
           ]
         }
       }
     },
     "serve": {
-      "command": "webpack serve --config demo/sandbox/webpack.config.ts"
+      "command": "webpack serve --config apps/sandbox/webpack.config.ts"
     },
     "lint": {
       "executor": "@nrwl/linter:eslint",
@@ -51,7 +51,7 @@
       ],
       "options": {
         "lintFilePatterns": [
-          "demo/sandbox/**/*.ts"
+          "apps/sandbox/**/*.ts"
         ]
       }
     },
@@ -61,7 +61,7 @@
         "{workspaceRoot}/coverage/{projectRoot}"
       ],
       "options": {
-        "jestConfig": "demo/sandbox/jest.config.ts",
+        "jestConfig": "apps/sandbox/jest.config.ts",
         "passWithNoTests": true
       },
       "configurations": {

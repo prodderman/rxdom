@@ -53,21 +53,6 @@ export function convertComponentIdentifier(
   throw new Error(`Unexpected namespace for: ${node.name}`);
 }
 
-export function mkComponentProp(
-  name: string,
-  value: t.Expression,
-  lazy: boolean
-) {
-  return lazy
-    ? t.objectMethod(
-        'get',
-        t.stringLiteral(name),
-        [],
-        t.blockStatement([t.returnStatement(value)])
-      )
-    : t.objectProperty(t.stringLiteral(name), value);
-}
-
 export function isChildUseless(child: NodePath<JSXChildren>) {
   return (
     !(
@@ -91,7 +76,7 @@ export function unwrapFragment(
   return [path];
 }
 
-export function processArrayChildren(
+export function processChildren(
   path: NodePath<t.JSXElement | t.JSXFragment>
 ): t.Expression[] {
   return path

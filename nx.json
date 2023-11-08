@@ -61,7 +61,7 @@
     ]
   },
   "workspaceLayout": {
-    "appsDir": "demo",
+    "appsDir": "apps",
     "libsDir": "packages"
   },
   "generators": {

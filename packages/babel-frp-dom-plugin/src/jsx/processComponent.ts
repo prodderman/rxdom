@@ -5,10 +5,10 @@ import { registerImport } from '../program';
 import { ProcessContext, JSXProcessResult } from '../types';
 import {
   convertComponentIdentifier,
-  isPrimitive,
-  mkComponentProp,
-  processArrayChildren,
-  toLiteral,
+  isJSXAttributePath,
+  isJSXExpressionContainerPath,
+  isJSXSpreadAttributePath,
+  processChildren,
 } from '../utils';
 import { parseAttributeName } from '../attributes';
 
@@ -24,41 +24,40 @@ export function processComponent(
     path.node.openingElement.name
   );
 
-  const childrenResults = processArrayChildren(path);
-  const childrenProp =
-    childrenResults.length > 0
-      ? [
-          mkComponentProp(
-            'children',
-            childrenResults.length === 1
-              ? childrenResults[0]
-              : t.arrayExpression(childrenResults),
-            true
-          ),
-        ]
-      : [];
+  const childrenResults = processChildren(path);
 
   const props = t.objectExpression(
-    childrenProp.concat(processComponentProps(path))
+    processComponentProps(path).concat(
+      childrenResults.length > 0
+        ? [
+            t.objectProperty(
+              t.stringLiteral('children'),
+              childrenResults.length === 1
+                ? childrenResults[0]
+                : t.arrayExpression(childrenResults)
+            ),
+          ]
+        : []
+    )
   );
 
-  const createComponentExpr = t.callExpression(
+  const componentExpression = t.callExpression(
     registerImport(path, 'createComponent'),
     [componentName, props]
   );
 
-  const mInsertExpr = context.parentId
+  const resultExpression = context.parentId
     ? t.callExpression(registerImport(path, 'insert'), [
-        t.identifier('ctx'),
+        t.identifier('context'),
         context.parentId,
-        createComponentExpr,
+        componentExpression,
         ...(id ? [id] : []),
       ])
-    : createComponentExpr;
+    : componentExpression;
 
   return {
     id,
-    expressions: [mInsertExpr],
+    expressions: [resultExpression],
     declarations: [],
     template: context.parentId && !context.skipId ? '<!>' : '',
   };
@@ -66,50 +65,35 @@ export function processComponent(
 
 function processComponentProps(
   path: NodePath<t.JSXElement>
-): (t.ObjectMethod | t.ObjectProperty)[] {
-  return path
-    .get('openingElement')
-    .get('attributes')
-    .map((attr) => {
-      if (t.isJSXSpreadAttribute(attr.node)) {
-        throw new Error('Spread is not implemented');
-      }
+): Array<t.ObjectProperty | t.SpreadElement> {
+  const props = path.get('openingElement').get('attributes');
+  const result: Array<t.ObjectProperty | t.SpreadElement> = [];
 
-      const { key } = parseAttributeName(attr as NodePath<t.JSXAttribute>);
-      const value = attr.node.value;
+  for (const prop of props) {
+    if (isJSXSpreadAttributePath(prop)) {
+      result.push(t.spreadElement(prop.node.argument));
+    } else if (isJSXAttributePath(prop)) {
+      const { key } = parseAttributeName(prop);
+      const propKey = t.stringLiteral(key);
+      const value = prop.get('value');
 
-      if (value === null || value === undefined) {
-        return mkComponentProp(key, t.booleanLiteral(true), false);
-      }
+      if (value.node === null || value.node === undefined) {
+        result.push(t.objectProperty(propKey, t.booleanLiteral(true)));
+      } else if (t.isStringLiteral(value.node)) {
+        result.push(t.objectProperty(propKey, value.node));
+      } else if (isJSXExpressionContainerPath(value)) {
+        const expression = value.get('expression').node;
 
-      if (t.isStringLiteral(value)) {
-        return mkComponentProp(key, value, false);
-      }
-
-      if (t.isJSXExpressionContainer(value)) {
-        if (t.isJSXEmptyExpression(value.expression)) {
-          return mkComponentProp(key, t.booleanLiteral(true), false);
+        if (t.isExpression(expression)) {
+          result.push(t.objectProperty(propKey, expression));
         }
-
-        const valuePath = attr.get(
-          'value'
-        ) as NodePath<t.JSXExpressionContainer>;
-        const evalResult = valuePath.get('expression').evaluate();
-        if (evalResult.confident) {
-          if (isPrimitive(evalResult.value)) {
-            return mkComponentProp(key, toLiteral(evalResult.value), false);
-          }
-
-          return mkComponentProp(key, value.expression, false);
-        }
-
-        if (t.isIdentifier(value.expression)) {
-          return mkComponentProp(key, value.expression, false);
-        }
-
-        return mkComponentProp(key, value.expression, false);
+      } else {
+        result.push(
+          t.objectProperty(propKey, value.node as t.JSXElement | t.JSXFragment)
+        );
       }
+    }
+  }
 
-      return mkComponentProp(key, value, true);
-    });
+  return result;
 }
