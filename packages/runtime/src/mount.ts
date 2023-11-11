@@ -1,15 +1,19 @@
 import type { JSX } from './jsx-runtime';
 import { insert } from './insert';
-import { disposeContext, createContext } from './context';
+import { disposeContext, renderQueue, runFlow, createContext } from './core';
 
 type Unmount = () => void;
 
 export function mount(tree: JSX.Element, element: Element): Unmount {
-  const rootContext = createContext();
-  insert(rootContext, element, tree);
+  const rootContext = createContext(false);
+  renderQueue.set(
+    (context) => insert(context, element, tree),
+    [null, rootContext]
+  );
+  runFlow();
 
   return () => {
-    disposeContext(rootContext);
+    disposeContext(rootContext, true);
     element.innerHTML = '';
   };
 }

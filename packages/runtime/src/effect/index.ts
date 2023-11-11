@@ -1,10 +1,11 @@
 import { Observable, subscriptionNever, merge } from '@frp-dom/reactive-core';
+import { Effect } from '../core';
 
 const effectfulSymbol = Symbol('');
 
 export type Effectful = {
   0: any;
-  1: Observable<never>;
+  1: Effect;
   [effectfulSymbol]: void;
 };
 

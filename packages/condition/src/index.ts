@@ -9,7 +9,7 @@ export type ConditionProps = {
 
 export function Cond(props: ConditionProps) {
   return isProperty(props.if)
-    ? map(props.if, (predicate) => (predicate ? props.then : props.else))
+    ? map(props.if, (condition) => (condition ? props.then : props.else))
     : props.if
     ? props.then
     : props.else;

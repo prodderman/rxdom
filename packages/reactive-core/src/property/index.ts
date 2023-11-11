@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   merge,
   type Observable,
   type Observer,
   type Subscription,
+  subscriptionNever,
 } from '../observable';
 import { newSubject } from '../subject';
 
@@ -15,7 +17,7 @@ export interface Property<A> extends Observable<unknown> {
 
 export function newProperty<A>(
   get: () => A,
-  subscribe: (observer: Observer<unknown>) => Subscription
+  subscribe: (observer: Observer<A>) => Subscription
 ): Property<A> {
   return {
     get,
@@ -25,20 +27,26 @@ export function newProperty<A>(
 }
 
 export function map<A, B>(
-  property: Property<A>,
+  target: Property<A>,
   project: (a: A) => B
 ): Property<B> {
-  const get = memoizePropertyProject(project, property);
-  let lastValue: B;
+  let lastTargetValue: A;
+  let lastResult: B;
 
-  const subscribe = (observer: Observer<unknown>) => {
-    lastValue = get();
-    return property.subscribe({
+  const get = () => {
+    if (lastTargetValue !== (lastTargetValue = target.get())) {
+      lastResult = project(lastTargetValue);
+    }
+
+    return lastResult;
+  };
+
+  const subscribe = (observer: Observer<B>) => {
+    let last = get();
+    return target.subscribe({
       next: () => {
-        const nextValue = get();
-        if (nextValue !== lastValue) {
-          lastValue = nextValue;
-          observer.next(nextValue);
+        if (last !== (last = get())) {
+          observer.next(last);
         }
       },
     });
@@ -65,7 +73,16 @@ export const combine = <Properties extends Property<unknown>[], Result>(
     ...values: readonly unknown[]
   ) => Result;
   const properties: Properties = args.slice(0, args.length - 1) as never;
-  const subject = newSubject(false);
+
+  if (properties.length === 0) {
+    return propertyNever;
+  }
+
+  if (properties.length === 1) {
+    return map(properties[0], project);
+  }
+
+  const subject = newSubject<Result>(false);
   const merged = merge(properties);
   const get = memoizePropertiesProject(project, properties);
 
@@ -89,7 +106,7 @@ export const combine = <Properties extends Property<unknown>[], Result>(
     }
   };
 
-  const subscribe = (listener: Observer<unknown>): Subscription => {
+  const subscribe = (listener: Observer<Result>): Subscription => {
     lastValue = get();
     const inner = subject.subscribe(listener);
     if (!outerSubscription && subject.observers > 0) {
@@ -117,7 +134,7 @@ function memoizePropertiesProject<R>(
     let changed = memoized === undefined;
     for (let i = 0; i < properties.length; i++) {
       const propertyValue = properties[i].get();
-      if (!Object.is(values[i], propertyValue)) {
+      if (values[i] !== propertyValue) {
         values[i] = propertyValue;
         changed = true;
       }
@@ -135,20 +152,7 @@ function memoizePropertiesProject<R>(
 export const isProperty = (entity: unknown): entity is Property<unknown> =>
   typeof entity === 'object' && entity !== null && propertySymbol in entity;
 
-function memoizePropertyProject<A, R>(
-  project: (arg: A) => R,
-  property: Property<A>
-): () => R {
-  let lastValue: A;
-  let lastResult: R;
-
-  return () => {
-    const nextValue = property.get();
-    if (!lastResult || lastValue !== nextValue) {
-      lastValue = nextValue;
-      lastResult = project(nextValue);
-    }
-
-    return lastResult;
-  };
-}
+const propertyNever = newProperty<never>(
+  () => void 0 as never,
+  () => subscriptionNever
+);

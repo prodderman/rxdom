@@ -1,10 +1,12 @@
 import { mount, withEffect, effect } from '@frp-dom/runtime';
 import { Atom } from '@frp-dom/data';
-import { Cond } from '@frp-dom/condition';
+import { map } from '@frp-dom/reactive-core';
 import './styles.css';
 
-const flag = Atom.new(true);
+const flag = Atom.new(false);
+const count = Atom.new(0);
 window.flag = flag;
+window.count = count;
 
 const Child1 = () => {
   return withEffect(
@@ -13,12 +15,6 @@ const Child1 = () => {
       console.log('Child1 mounted');
       return () => {
         console.log('Child1 unmounted');
-      };
-    }),
-    effect(() => {
-      console.log('another Child1 effect');
-      return () => {
-        console.log('another Child1 dispose');
       };
     })
   );
@@ -38,7 +34,7 @@ const Child2 = () => {
 
 const Child3 = () => {
   return withEffect(
-    <div>Child 3</div>,
+    <Child2 />,
     effect(() => {
       console.log('Child3 mounted');
       return () => {
@@ -49,4 +45,7 @@ const Child3 = () => {
 };
 
 const root = document.getElementById('root');
-mount(<Cond if={flag} then={<Child2 />} else={<Child3 />} />, root);
+mount(
+  map(flag, (flag) => (flag ? <Child3 /> : 'True')),
+  root
+);

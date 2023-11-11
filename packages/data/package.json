@@ -1,5 +1,5 @@
 {
-  "name": "@frp-dom/reactive-core",
+  "name": "@frp-dom/data",
   "version": "0.0.1",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -12,6 +12,9 @@
     "default": "./build/index.js"
   },
   "scripts": {
-    "build": "microbundle --tsconfig tsconfig.lib.json --compress --target=node --strict -f cjs"
+    "build": "microbundle --tsconfig tsconfig.lib.json --compress --target=web --strict -f cjs"
+  },
+  "dependencies": {
+    "@frp-dom/reactive-core": "0.0.1"
   }
 }

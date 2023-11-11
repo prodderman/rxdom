@@ -1,4 +1,21 @@
 {
   "name": "@frp-dom/runtime",
-  "version": "0.0.1"
+  "version": "0.0.1",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "browserslist": [
+    "last 1 year"
+  ],
+  "exports": {
+    "types": "./build/index.d.ts",
+    "require": "./build/index.js",
+    "default": "./build/index.js"
+  },
+  "scripts": {
+    "build": "microbundle --tsconfig tsconfig.lib.json --compress --target=web --strict -f cjs",
+    "build2": "esbuild --bundle ./src/index.ts --platform=node --tsconfig=tsconfig.lib.json --outdir=build"
+  },
+  "dependencies": {
+    "@frp-dom/reactive-core": "0.0.1"
+  }
 }

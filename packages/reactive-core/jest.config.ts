@@ -1,7 +1,6 @@
 /* eslint-disable */
 export default {
   displayName: 'reactive-core',
-  preset: '../../jest.preset.js',
   globals: {
     'ts-jest': {
       tsconfig: '<rootDir>/tsconfig.spec.json',

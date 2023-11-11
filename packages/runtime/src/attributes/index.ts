@@ -1,5 +1,5 @@
 import { Property, isProperty } from '@frp-dom/reactive-core';
-import { Context, createReactiveNode } from '../context';
+import { Context, createReactiveNode } from '../core';
 
 export function spreadAttributes(
   context: Context,

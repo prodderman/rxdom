@@ -1,5 +1,5 @@
 import { transact } from '@frp-dom/reactive-core';
-import { renderQueue } from '../context';
+import { renderQueue } from '../core';
 import type { JSX } from '../jsx-runtime';
 
 export function createComponent(
@@ -7,10 +7,10 @@ export function createComponent(
   props: object
 ) {
   return () => {
-    const size = renderQueue.size;
+    const queueSizeBeforeRender = renderQueue.size;
     const result = transact(() => Component(props));
 
-    if (size !== renderQueue.size) {
+    if (queueSizeBeforeRender !== renderQueue.size) {
       console.error(
         `WARNING: State changed in "${Component.name}" while rendering`
       );

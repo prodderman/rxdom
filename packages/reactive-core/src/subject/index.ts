@@ -15,9 +15,7 @@ export function now() {
 
 const taskQueue = new Map<(value: any) => void, any>();
 export function transact<A>(fn: () => A): A {
-  if (transacting) {
-    return fn();
-  }
+  if (transacting) return fn();
 
   transacting = true;
   const result = fn();
@@ -31,13 +29,12 @@ export function transact<A>(fn: () => A): A {
 
 export function newSubject<A = unknown>(
   source: boolean,
-  initial?: A
+  lastValue?: A
 ): Subject<A> {
   const listeners = new Set<Observer<A>>();
   const pendingListeners = new Set<Observer<A>>();
   let subscriptionCount = 0;
   let lastTime = time;
-  let lastValue = initial;
   let notifying = false;
 
   const notify = (value: A) => {
@@ -47,9 +44,7 @@ export function newSubject<A = unknown>(
 
       if (listeners.size > 0) {
         notifying = true;
-        for (const listener of listeners) {
-          listener.next(value);
-        }
+        for (const listener of listeners) listener.next(value);
         notifying = false;
       }
 

@@ -1,5 +1,21 @@
 {
   "name": "@frp-dom/condition",
   "version": "0.0.1",
-  "type": "commonjs"
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "browserslist": [
+    "last 1 year"
+  ],
+  "exports": {
+    "types": "./build/index.d.ts",
+    "require": "./build/index.js",
+    "default": "./build/index.js"
+  },
+  "scripts": {
+    "build": "microbundle --tsconfig tsconfig.lib.json --compress --target=web --strict -f cjs"
+  },
+  "dependencies": {
+    "@frp-dom/reactive-core": "0.0.1",
+    "@frp-dom/runtime": "0.0.1"
+  }
 }

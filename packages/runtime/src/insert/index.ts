@@ -1,6 +1,6 @@
 import { isProperty } from '@frp-dom/reactive-core';
 import { isEffectful } from '../effect';
-import { createEffectfulNode, createReactiveNode, Context } from '../context';
+import { createEffectfulNode, createReactiveNode, Context } from '../core';
 
 export type MountableElement = ParentNode;
 
@@ -38,7 +38,7 @@ function insertExpression(
       return insertExpression(context, parentNode, child, current);
     }
     case isProperty(child): {
-      createReactiveNode(context, child, (newContext) => {
+      return createReactiveNode(context, child, (newContext) => {
         current = insertExpression(
           newContext,
           parentNode,
@@ -46,11 +46,11 @@ function insertExpression(
           current
         );
       });
-      return current;
     }
     case isEffectful(child): {
-      createEffectfulNode(context, child[1]);
-      return insertExpression(context, parentNode, child[0], current);
+      return createEffectfulNode(context, child[1], (newContext) =>
+        insertExpression(newContext, parentNode, child[0], current)
+      );
     }
     case Array.isArray(child): {
       const array: Element[] = [];

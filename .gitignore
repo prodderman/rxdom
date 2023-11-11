@@ -2,6 +2,7 @@
 
 # compiled output
 dist
+build
 tmp
 /out-tsc
 
@@ -33,6 +34,7 @@ npm-debug.log
 yarn-error.log
 testem.log
 /typings
+.turbo
 
 # System Files
 .DS_Store
