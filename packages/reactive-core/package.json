@@ -3,15 +3,16 @@
   "version": "0.0.1",
   "main": "build/index.js",
   "types": "build/index.d.ts",
+  "module": "build/index.module.js",
   "browserslist": [
     "last 1 year"
   ],
   "exports": {
     "types": "./build/index.d.ts",
     "require": "./build/index.js",
-    "default": "./build/index.js"
+    "default": "./build/index.module.js"
   },
   "scripts": {
-    "build": "microbundle --tsconfig tsconfig.lib.json --compress --target=node --strict -f cjs"
+    "build": "microbundle --tsconfig tsconfig.lib.json --target=web --strict -f cjs,esm"
   }
 }

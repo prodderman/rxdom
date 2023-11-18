@@ -12,8 +12,9 @@
     "default": "./build/index.js"
   },
   "scripts": {
-    "build": "microbundle --tsconfig tsconfig.lib.json --compress --target=web --strict -f cjs",
-    "build2": "esbuild --bundle ./src/index.ts --platform=node --tsconfig=tsconfig.lib.json --outdir=build"
+    "build": "microbundle --tsconfig tsconfig.lib.json --target=web --strict -f cjs",
+    "test": "jest -c ./jest.config.ts",
+    "test-coverage": "jest -c ./jest.config.ts --coverage"
   },
   "dependencies": {
     "@frp-dom/reactive-core": "0.0.1"

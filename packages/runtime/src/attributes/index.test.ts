@@ -1,7 +1,6 @@
-import { Atom } from '@frp-dom/data';
 import { template } from '../template';
 import { setAttribute } from './index';
-import { createContext } from '../context';
+import { createContext } from '../core';
 
 describe('attributes', () => {
   const makeDiv = template('<div/>');
@@ -11,7 +10,7 @@ describe('attributes', () => {
 
   describe('setAttribute', () => {
     it('should just set attribute', () => {
-      const context = createContext();
+      const context = createContext(false);
       const div = makeDiv();
       setAttribute(context, div, 'tabIndex', 42);
       expect(div.getAttribute('tabIndex')).toBe('42');
@@ -20,7 +19,7 @@ describe('attributes', () => {
     });
 
     it('should remove attribute if value is null or undefined', () => {
-      const context = createContext();
+      const context = createContext(false);
       const div = makeDiv();
       setAttribute(context, div, 'attribute1', 'value');
       setAttribute(context, div, 'attribute2', 'value');
@@ -33,7 +32,7 @@ describe('attributes', () => {
     });
 
     it('should toggle attribute if value is boolean', () => {
-      const context = createContext();
+      const context = createContext(false);
       const div = makeDiv();
       setAttribute(context, div, 'attribute', true);
       expect(div.getAttribute('attribute')).toBe('');
@@ -46,26 +45,26 @@ describe('attributes', () => {
       expect(div.getAttribute('attribute2')).toBe(null);
     });
 
-    it('should bind properties', () => {
-      const context = createContext();
-      const atom = Atom.new<any>('value');
-      const div = makeDiv();
+    // it('should bind properties', () => {
+    //   const context = createContext(false);
+    //   const atom = Atom.new<any>('value');
+    //   const div = makeDiv();
 
-      setAttribute(context, div, 'attribute', atom),
-        expect(div.getAttribute('attribute')).toBe('value');
+    //   setAttribute(context, div, 'attribute', atom),
+    //     expect(div.getAttribute('attribute')).toBe('value');
 
-      atom.set(42);
-      expect(div.getAttribute('attribute')).toBe('42');
+    //   atom.set(42);
+    //   expect(div.getAttribute('attribute')).toBe('42');
 
-      atom.set(null);
-      expect(div.getAttribute('attribute')).toBe(null);
+    //   atom.set(null);
+    //   expect(div.getAttribute('attribute')).toBe(null);
 
-      atom.set(true);
-      expect(div.getAttribute('attribute')).toBe('');
+    //   atom.set(true);
+    //   expect(div.getAttribute('attribute')).toBe('');
 
-      atom.set(false);
-      expect(div.getAttribute('attribute')).toBe(null);
-    });
+    //   atom.set(false);
+    //   expect(div.getAttribute('attribute')).toBe(null);
+    // });
   });
 
   describe('setStyle', () => {

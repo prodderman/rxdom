@@ -1,3 +1,6 @@
-map(count, (count) => <div>{count}</div>);
-
-<Comp />;
+const a = (
+  <div>
+    {atom}
+    <span>{atom2}</span>
+  </div>
+);

@@ -10,7 +10,8 @@
     "default": "./build/index.js"
   },
   "scripts": {
-    "build": "microbundle build --tsconfig tsconfig.lib.json --compress --target=node --strict -f cjs"
+    "build": "microbundle build --tsconfig tsconfig.lib.json --compress --target=node --strict -f cjs",
+    "test-sandbox": "jest test/sandbox.test.ts -c ./jest.config.ts "
   },
   "dependencies": {
     "@babel/core": "^7.20.12",
@@ -20,5 +21,8 @@
     "@types/babel__core": "^7.20.4",
     "html-entities": "^2.4.0",
     "validate-html-nesting": "^1.2.2"
+  },
+  "devDependencies": {
+    "babel-plugin-tester": "^11.0.4"
   }
 }

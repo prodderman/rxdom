@@ -3,7 +3,9 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "build": "turbo build"
+    "build": "turbo build",
+    "babel-plugin-sandbox": "pnpm -F=@frp-dom/babel-plugin run test-sandbox",
+    "serve-sandbox": "pnpm -F=app-sandbox run serve"
   },
   "private": true,
   "devDependencies": {
@@ -16,6 +18,7 @@
     "jest-environment-jsdom": "^28.1.1",
     "microbundle": "^0.15.1",
     "ts-jest": "^29.0.5",
+    "tslib": "^2.6.2",
     "turbo": "^1.10.16"
   }
 }

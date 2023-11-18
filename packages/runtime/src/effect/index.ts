@@ -1,23 +1,21 @@
 import { Observable, subscriptionNever, merge } from '@frp-dom/reactive-core';
 import { Effect } from '../core';
 
-const effectfulSymbol = Symbol('');
+const effectfulSymbol = Symbol('effectful');
 
-export type Effectful = {
-  0: any;
-  1: Effect;
-  [effectfulSymbol]: void;
-};
+export type effectfulSymbol = typeof effectfulSymbol;
 
-export function withEffect(
-  value: any,
+export type Effectful<T> = [T, Effect];
+
+export function withEffect<T>(
+  value: T,
   ...effects: Observable<void>[]
-): Effectful {
+): Effectful<T> {
   return {
     0: value,
     1: merge(effects),
     [effectfulSymbol]: void 0,
-  };
+  } as never as Effectful<T>;
 }
 
 export function effect(
@@ -31,7 +29,7 @@ export function effect(
   };
 }
 
-export function isEffectful(entity: any): entity is Effectful {
+export function isEffectful(entity: any): entity is Effectful<unknown> {
   return (
     typeof entity === 'object' && entity !== null && effectfulSymbol in entity
   );

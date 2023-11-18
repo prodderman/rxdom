@@ -19,23 +19,26 @@ function insertExpression(
   child: any,
   current?: any
 ): any {
-  const t = typeof child,
-    isCurrentArray = current && Array.isArray(current);
+  let t,
+    isCurrentArray = Array.isArray(current);
+
+  while ((t = typeof child) === 'function') child = child(context);
 
   switch (true) {
     case t === 'string' || t === 'number' || t === 'bigint' || t === 'symbol': {
       if (t !== 'string') child = child.toString();
-
-      if (isCurrentArray) current = cleanChildren(current);
-      return insertText(parentNode, current, child);
+      if (isCurrentArray) {
+        return replaceChildrenWith(parentNode, current, child);
+      } else {
+        return insertText(parentNode, current, child);
+      }
     }
     case child == null || t === 'boolean': {
-      if (isCurrentArray) current = cleanChildren(current);
-      return insertText(parentNode, current);
-    }
-    case t === 'function': {
-      while (typeof child === 'function') child = child(context);
-      return insertExpression(context, parentNode, child, current);
+      if (isCurrentArray) {
+        return replaceChildrenWith(parentNode, current);
+      } else {
+        return insertText(parentNode, current);
+      }
     }
     case isProperty(child): {
       return createReactiveNode(context, child, (newContext) => {
@@ -53,27 +56,24 @@ function insertExpression(
       );
     }
     case Array.isArray(child): {
-      const array: Element[] = [];
-      normalizeIncomingArray(context, parentNode, array, child, current);
-
-      if (array.length === 0) {
-        isCurrentArray && (current = cleanChildren(current));
-        return insertText(parentNode, current);
-      }
-
-      if (isCurrentArray) {
-        reconcileArrays(parentNode, current, array);
-      } else if (current) {
-        current.replaceWith.apply(current, array);
-      } else {
-        parentNode.append.apply(parentNode, array);
-      }
-
-      return array;
+      // if (child.length > 0) {
+      //   const array: Element[] = [];
+      //   if (isCurrentArray) current = [current];
+      //   insertArray(context, parentNode, array, child, current);
+      //   if (isCurrentArray && array.length < current.length) {
+      //     for (let idx = array.length; idx < current.length; idx++) {
+      //       current[idx].remove();
+      //     }
+      //   }
+      //   return array;
+      // }
+      // if (isCurrentArray) current = removeChildren(current);
+      // return insertText(parentNode, current);
+      return current;
     }
     case child.nodeType !== undefined: {
       if (isCurrentArray) {
-        current = cleanChildren(current);
+        current = replaceChildrenWith(parentNode, current, child);
       }
 
       if (current) {
@@ -84,68 +84,117 @@ function insertExpression(
       return child;
     }
     default: {
-      console.warn(`Unrecognized child`, child);
+      console.error(`WARNING: Unrecognized element`, child);
       return current;
     }
   }
 }
 
-function normalizeIncomingArray(
+export function replaceChildrenWith(
+  parentNode: MountableElement,
+  current: any[],
+  replacement: any = '',
+  isReplacementText = typeof replacement === 'string',
+  insertion?: Node
+) {
+  for (let idx = current.length - 1; idx >= 0; idx--) {
+    const nodeOrArray = current[idx];
+
+    if (Array.isArray(nodeOrArray)) {
+      insertion = replaceChildrenWith(
+        parentNode,
+        nodeOrArray,
+        replacement,
+        isReplacementText,
+        insertion
+      );
+    } else {
+      if (nodeOrArray.nodeType == 3 && isReplacementText && !insertion) {
+        nodeOrArray.data = replacement;
+        insertion = nodeOrArray;
+      } else if (nodeOrArray === replacement && !insertion) {
+        insertion = replacement;
+      } else if (!idx && !insertion) {
+        nodeOrArray.replaceWith(
+          (insertion = isReplacementText
+            ? document.createTextNode(replacement)
+            : replacement)
+        );
+      } else {
+        nodeOrArray.remove();
+      }
+    }
+  }
+
+  return insertion;
+}
+
+function insertArray(
   context: Context,
   parentNode: MountableElement,
   buffer: any[],
   child: any[],
-  current: any
+  current: any[],
+  offset = 0,
+  referenceNode = current[offset]
 ) {
-  for (let idx = 0; idx < child.length; idx++) {
-    let item = child[idx],
-      prev = current && current[idx],
-      t;
+  let currentIdx = offset,
+    idx = 0;
 
-    if (item === '' || item == null || (t = typeof item) == 'boolean') {
-      //
-    } else if (item.nodeType) {
+  for (idx = 0; idx < child.length; idx++, currentIdx++) {
+    let item = child[idx],
+      prevItem = current[currentIdx],
+      itemType;
+
+    while ((itemType = typeof item) === 'function') item = item(context);
+
+    if (item != null && item.nodeType) {
+      if (prevItem) {
+        if (item !== prevItem) prevItem.replaceWith((referenceNode = item));
+      } else if (referenceNode) {
+        referenceNode.after((referenceNode = item));
+      } else {
+        parentNode.append((referenceNode = item));
+      }
+
       buffer.push(item);
     } else if (Array.isArray(item)) {
-      normalizeIncomingArray(context, parentNode, buffer, item, prev);
+      const bufferLengthBefore = buffer.length;
+      referenceNode = insertArray(
+        context,
+        parentNode,
+        buffer,
+        item,
+        current,
+        currentIdx,
+        referenceNode
+      );
+      currentIdx += buffer.length - bufferLengthBefore;
     } else if (isProperty(item)) {
-      // TODO: works incorrectly, fix it
-      const chunkStart = buffer.length;
-      let prevChunkLength = 0;
-      let prevInsertion: any = undefined;
-      createReactiveNode(context, item, (newContext) => {
-        prevInsertion = insertExpression(
-          newContext,
-          parentNode,
-          item.get(),
-          prevInsertion
-        );
-        buffer.splice(
-          chunkStart,
-          prevChunkLength,
-          ...(Array.isArray(prevInsertion) ? prevInsertion : [prevInsertion])
-        );
-        prevChunkLength = Array.isArray(prevInsertion)
-          ? prevInsertion.length
-          : 1;
-      });
+      // TODO: what to to?
     } else {
-      if (t !== 'string') item = item.toString();
-      if (prev && prev.nodeType === 3) {
-        if (prev.data !== item) prev.data = item;
-        buffer.push(prev);
+      item = itemType == 'boolean' || item == null ? '' : item.toString();
+      if (prevItem) {
+        if (prevItem.nodeType === 3) {
+          if (prevItem.data !== item) prevItem.data = item;
+          buffer.push(prevItem);
+        } else {
+          buffer.push((referenceNode = document.createTextNode(item)));
+          prevItem.replaceWith(referenceNode);
+        }
       } else {
-        buffer.push(document.createTextNode(item));
+        const textNode = document.createTextNode(item);
+        buffer.push(textNode);
+        if (referenceNode) {
+          referenceNode.after(textNode, (referenceNode = textNode));
+        } else {
+          parentNode.append((referenceNode = textNode));
+        }
       }
     }
   }
-}
 
-function cleanChildren(current: any[]) {
-  if (current.length > 1) {
-    for (let i = 1; i < current.length; i++) current[i].remove();
-  }
-  return current[0];
+  return referenceNode;
 }
 
 function insertText(parentNode: MountableElement, current?: any, text = '') {

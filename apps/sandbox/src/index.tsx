@@ -3,49 +3,19 @@ import { Atom } from '@frp-dom/data';
 import { map } from '@frp-dom/reactive-core';
 import './styles.css';
 
-const flag = Atom.new(false);
-const count = Atom.new(0);
-window.flag = flag;
-window.count = count;
+const array = Atom.new([
+  true,
+  document.createElement('div'),
+  [document.createElement('section'), 'text 1'],
+  ' text 2',
+  null,
+  ' text 3',
+]);
+window.array = array;
 
-const Child1 = () => {
-  return withEffect(
-    <div>Child</div>,
-    effect(() => {
-      console.log('Child1 mounted');
-      return () => {
-        console.log('Child1 unmounted');
-      };
-    })
-  );
-};
-
-const Child2 = () => {
-  return withEffect(
-    <Child1 />,
-    effect(() => {
-      console.log('Child2 mounted');
-      return () => {
-        console.log('Child2 unmounted');
-      };
-    })
-  );
-};
-
-const Child3 = () => {
-  return withEffect(
-    <Child2 />,
-    effect(() => {
-      console.log('Child3 mounted');
-      return () => {
-        console.log('Child3 unmounted');
-      };
-    })
-  );
+const App = () => {
+  return <div>Array: {array}</div>;
 };
 
 const root = document.getElementById('root');
-mount(
-  map(flag, (flag) => (flag ? <Child3 /> : 'True')),
-  root
-);
+mount(<App />, root);
