@@ -1,4 +1,4 @@
-import { isProperty } from '@frp-dom/reactive-core';
+import { type Property, isProperty, merge } from '@frp-dom/reactive-core';
 import { isEffectful } from '../effect';
 import { createEffectfulNode, createReactiveNode, Context } from '../core';
 
@@ -7,194 +7,179 @@ export type MountableElement = ParentNode;
 export function insert(
   context: Context,
   parent: MountableElement,
-  child: any,
+  value: any,
   current?: any
 ): any {
-  return insertExpression(context, parent, child, current);
+  return insertExpression(context, parent, value, current);
 }
 
 function insertExpression(
   context: Context,
   parentNode: MountableElement,
-  child: any,
-  current?: any
+  value: any,
+  current?: any,
+  unwrap?: boolean
 ): any {
   let t,
     isCurrentArray = Array.isArray(current);
 
-  while ((t = typeof child) === 'function') child = child(context);
+  while ((t = typeof value) === 'function') value = value(context);
 
   switch (true) {
     case t === 'string' || t === 'number' || t === 'bigint' || t === 'symbol': {
-      if (t !== 'string') child = child.toString();
+      if (t !== 'string') value = value.toString();
       if (isCurrentArray) {
-        return replaceChildrenWith(parentNode, current, child);
-      } else {
-        return insertText(parentNode, current, child);
+        return replaceChildrenWith(current, value);
       }
+
+      return insertText(parentNode, current, value);
     }
-    case child == null || t === 'boolean': {
+    case value == null || t === 'boolean': {
       if (isCurrentArray) {
-        return replaceChildrenWith(parentNode, current);
-      } else {
-        return insertText(parentNode, current);
+        return replaceChildrenWith(current);
       }
+
+      return insertText(parentNode, current);
     }
-    case isProperty(child): {
-      return createReactiveNode(context, child, (newContext) => {
+    case isProperty(value): {
+      return createReactiveNode(context, value, (newContext) => {
         current = insertExpression(
           newContext,
           parentNode,
-          child.get(),
+          value.get(),
           current
         );
       });
     }
-    case isEffectful(child): {
-      return createEffectfulNode(context, child[1], (newContext) =>
-        insertExpression(newContext, parentNode, child[0], current)
+    case isEffectful(value): {
+      return createEffectfulNode(context, value[1], (newContext) =>
+        insertExpression(newContext, parentNode, value[0], current)
       );
     }
-    case Array.isArray(child): {
-      // if (child.length > 0) {
-      //   const array: Element[] = [];
-      //   if (isCurrentArray) current = [current];
-      //   insertArray(context, parentNode, array, child, current);
-      //   if (isCurrentArray && array.length < current.length) {
-      //     for (let idx = array.length; idx < current.length; idx++) {
-      //       current[idx].remove();
-      //     }
-      //   }
-      //   return array;
-      // }
-      // if (isCurrentArray) current = removeChildren(current);
-      // return insertText(parentNode, current);
-      return current;
-    }
-    case child.nodeType !== undefined: {
-      if (isCurrentArray) {
-        current = replaceChildrenWith(parentNode, current, child);
+    case value[Symbol.iterator] != null: {
+      const normalizedBuffer: Element[] = [];
+      const reactiveBuffer = normalizeArray(
+        context,
+        isCurrentArray ? current : current ? [current] : [],
+        normalizedBuffer,
+        value,
+        unwrap
+      );
+
+      if (reactiveBuffer.length > 0) {
+        return createReactiveNode(
+          context,
+          merge(reactiveBuffer),
+          (newContext) =>
+            (current = insertExpression(
+              newContext,
+              parentNode,
+              normalizedBuffer,
+              current,
+              true
+            ))
+        );
+      }
+
+      if (normalizedBuffer.length === 0) {
+        if (isCurrentArray) {
+          return replaceChildrenWith(current);
+        } else {
+          return insertText(parentNode, current);
+        }
       }
 
       if (current) {
-        current.replaceWith(child);
+        reconcileArrays(
+          parentNode,
+          isCurrentArray ? current : [current],
+          normalizedBuffer
+        );
       } else {
-        parentNode.append(child);
+        parentNode.append.apply(parentNode, normalizedBuffer);
       }
-      return child;
+      return normalizedBuffer;
+    }
+    case value.nodeType !== undefined: {
+      if (isCurrentArray) {
+        current = replaceChildrenWith(current, value);
+      }
+
+      if (current) {
+        current.replaceWith(value);
+      } else {
+        parentNode.append(value);
+      }
+      return value;
     }
     default: {
-      console.error(`WARNING: Unrecognized element`, child);
+      console.error(`WARNING: Unrecognized element`, value);
       return current;
     }
   }
 }
 
-export function replaceChildrenWith(
-  parentNode: MountableElement,
-  current: any[],
-  replacement: any = '',
-  isReplacementText = typeof replacement === 'string',
-  insertion?: Node
-) {
-  for (let idx = current.length - 1; idx >= 0; idx--) {
-    const nodeOrArray = current[idx];
-
-    if (Array.isArray(nodeOrArray)) {
-      insertion = replaceChildrenWith(
-        parentNode,
-        nodeOrArray,
-        replacement,
-        isReplacementText,
-        insertion
-      );
-    } else {
-      if (nodeOrArray.nodeType == 3 && isReplacementText && !insertion) {
-        nodeOrArray.data = replacement;
-        insertion = nodeOrArray;
-      } else if (nodeOrArray === replacement && !insertion) {
-        insertion = replacement;
-      } else if (!idx && !insertion) {
-        nodeOrArray.replaceWith(
-          (insertion = isReplacementText
-            ? document.createTextNode(replacement)
-            : replacement)
-        );
-      } else {
-        nodeOrArray.remove();
-      }
-    }
-  }
-
-  return insertion;
-}
-
-function insertArray(
+function normalizeArray(
   context: Context,
-  parentNode: MountableElement,
-  buffer: any[],
-  child: any[],
-  current: any[],
-  offset = 0,
-  referenceNode = current[offset]
+  current: Node[],
+  buffer: Array<Node | Property<unknown>>,
+  value: any,
+  unwrap = false,
+  idx = 0,
+  reactiveBuffer: Property<unknown>[] = []
 ) {
-  let currentIdx = offset,
-    idx = 0;
+  let t;
+  for (let item of value) {
+    while ((t = typeof item) === 'function') item = item(context);
 
-  for (idx = 0; idx < child.length; idx++, currentIdx++) {
-    let item = child[idx],
-      prevItem = current[currentIdx],
-      itemType;
-
-    while ((itemType = typeof item) === 'function') item = item(context);
-
-    if (item != null && item.nodeType) {
-      if (prevItem) {
-        if (item !== prevItem) prevItem.replaceWith((referenceNode = item));
-      } else if (referenceNode) {
-        referenceNode.after((referenceNode = item));
-      } else {
-        parentNode.append((referenceNode = item));
-      }
-
+    if (t === 'boolean' || item == null) {
+      idx++;
+    } else if (t === 'object' && item.nodeType) {
+      idx++;
       buffer.push(item);
-    } else if (Array.isArray(item)) {
-      const bufferLengthBefore = buffer.length;
-      referenceNode = insertArray(
+    } else if (t !== 'string' && item[Symbol.iterator]) {
+      normalizeArray(
         context,
-        parentNode,
+        current,
         buffer,
         item,
-        current,
-        currentIdx,
-        referenceNode
+        false,
+        idx,
+        reactiveBuffer
       );
-      currentIdx += buffer.length - bufferLengthBefore;
     } else if (isProperty(item)) {
-      // TODO: what to to?
-    } else {
-      item = itemType == 'boolean' || item == null ? '' : item.toString();
-      if (prevItem) {
-        if (prevItem.nodeType === 3) {
-          if (prevItem.data !== item) prevItem.data = item;
-          buffer.push(prevItem);
-        } else {
-          buffer.push((referenceNode = document.createTextNode(item)));
-          prevItem.replaceWith(referenceNode);
-        }
+      if (unwrap) {
+        item = item.get();
+        normalizeArray(
+          context,
+          current,
+          buffer,
+          (t = typeof item) !== 'string' && item[Symbol.iterator]
+            ? item
+            : [item],
+          false,
+          idx,
+          reactiveBuffer
+        );
       } else {
-        const textNode = document.createTextNode(item);
-        buffer.push(textNode);
-        if (referenceNode) {
-          referenceNode.after(textNode, (referenceNode = textNode));
-        } else {
-          parentNode.append((referenceNode = textNode));
-        }
+        buffer.push(item);
+        reactiveBuffer.push(item);
       }
+      idx++;
+    } else {
+      if (t !== 'string') item = item.toString();
+
+      const prev = current[idx];
+      if (prev && prev.nodeType === 3 && (prev as Text).data === item) {
+        buffer.push(prev);
+      } else {
+        buffer.push(document.createTextNode(item));
+      }
+      idx++;
     }
   }
 
-  return referenceNode;
+  return reactiveBuffer;
 }
 
 function insertText(parentNode: MountableElement, current?: any, text = '') {
@@ -211,6 +196,33 @@ function insertText(parentNode: MountableElement, current?: any, text = '') {
   return current;
 }
 
+export function replaceChildrenWith(
+  current: any[],
+  replacement: any = '',
+  isReplacementText = typeof replacement === 'string'
+) {
+  let insertion: Node | undefined;
+  for (let idx = current.length - 1; idx >= 0; idx--) {
+    const node = current[idx];
+    if (node.nodeType === 3 && isReplacementText && !insertion) {
+      if (node.data !== replacement) node.data = replacement;
+      insertion = node;
+    } else if (node === replacement && !insertion) {
+      insertion = replacement;
+    } else if (!idx && !insertion) {
+      node.replaceWith(
+        (insertion = isReplacementText
+          ? document.createTextNode(replacement)
+          : replacement)
+      );
+    } else {
+      node.remove();
+    }
+  }
+
+  return insertion;
+}
+
 function reconcileArrays(parentNode: Node, a: Element[], b: Element[]) {
   let bLength = b.length,
     aEnd = a.length,
@@ -218,7 +230,7 @@ function reconcileArrays(parentNode: Node, a: Element[], b: Element[]) {
     aStart = 0,
     bStart = 0,
     after = a[aEnd - 1].nextSibling,
-    map = null;
+    map;
 
   while (aStart < aEnd || bStart < bEnd) {
     // common prefix

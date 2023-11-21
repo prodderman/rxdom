@@ -33,11 +33,13 @@ export const merge = <A>(
     return observables[0];
   }
 
+  const observablesSet = new Set(observables);
   return {
     subscribe: (listener) => {
-      const subscriptions = Array(observables.length);
-      for (let idx = 0; idx < observables.length; idx++) {
-        subscriptions[idx] = observables[idx].subscribe(listener);
+      let subscriptions = Array(observables.length),
+        idx = 0;
+      for (let observable of observablesSet) {
+        subscriptions[idx++] = observable.subscribe(listener);
       }
 
       return {

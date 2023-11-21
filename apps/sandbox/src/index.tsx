@@ -3,18 +3,16 @@ import { Atom } from '@frp-dom/data';
 import { map } from '@frp-dom/reactive-core';
 import './styles.css';
 
-const array = Atom.new([
-  true,
-  document.createElement('div'),
-  [document.createElement('section'), 'text 1'],
-  ' text 2',
-  null,
-  ' text 3',
-]);
+const subAtom1 = Atom.new([123, 456]);
+const subAtom2 = Atom.new(['asd ', subAtom1, ' zxc']);
+
+const array = Atom.new([' text 2 ', subAtom1, ' text 3 ', subAtom2]);
 window.array = array;
+window.subAtom1 = subAtom1;
+window.subAtom2 = subAtom2;
 
 const App = () => {
-  return <div>Array: {array}</div>;
+  return <div>{array}</div>;
 };
 
 const root = document.getElementById('root');

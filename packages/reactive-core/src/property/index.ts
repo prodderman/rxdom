@@ -87,17 +87,7 @@ export const combine = <Properties extends Property<unknown>[], Result>(
   const get = memoizePropertiesProject(project, properties);
 
   let outerSubscription: Subscription | undefined;
-  let lastValue: Result | undefined = undefined;
-
-  const observer: Observer<unknown> = {
-    next: () => {
-      const nextValue = get();
-      if (nextValue !== lastValue) {
-        lastValue = nextValue;
-        subject.next(nextValue);
-      }
-    },
-  };
+  let lastValue: Result;
 
   const outerDisposer = () => {
     if (subject.observers === 0 && outerSubscription) {
@@ -110,7 +100,13 @@ export const combine = <Properties extends Property<unknown>[], Result>(
     lastValue = get();
     const inner = subject.subscribe(listener);
     if (!outerSubscription && subject.observers > 0) {
-      outerSubscription = merged.subscribe(observer);
+      outerSubscription = merged.subscribe({
+        next: () => {
+          if (lastValue !== (lastValue = get())) {
+            subject.next(lastValue);
+          }
+        },
+      });
     }
     return {
       unsubscribe() {

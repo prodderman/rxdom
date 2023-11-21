@@ -1,5 +1,5 @@
 import { transact } from '@frp-dom/reactive-core';
-import { renderQueue } from '../core';
+import { Context, renderQueue } from '../core';
 import type { JSX } from '../jsx-runtime';
 
 export function createComponent(

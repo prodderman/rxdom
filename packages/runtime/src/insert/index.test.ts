@@ -20,38 +20,28 @@ describe('runtime', () => {
     it('should replace the current nodes with the incoming one', () => {
       const parent = container();
       const current: NestedArray<Node> = [
-        [
-          [
-            document.createTextNode('text'),
-            document.createTextNode('text'),
-            document.createElement('section'),
-          ],
-          document.createElement('span'),
-          document.createElement('span'),
-          document.createElement('span'),
-          [
-            document.createTextNode('text'),
-            document.createTextNode('text'),
-            document.createElement('section'),
-          ],
-        ],
-        [
-          document.createElement('span'),
-          document.createElement('span'),
-          document.createElement('span'),
-          [
-            document.createTextNode('text'),
-            document.createTextNode('text'),
-            document.createElement('section'),
-          ],
-        ],
+        document.createTextNode('text'),
+        document.createTextNode('text'),
+        document.createElement('section'),
+        document.createElement('span'),
+        document.createElement('span'),
+        document.createElement('span'),
+        document.createTextNode('text'),
+        document.createTextNode('text'),
+        document.createElement('section'),
+        document.createElement('span'),
+        document.createElement('span'),
+        document.createElement('span'),
+        document.createTextNode('text'),
+        document.createTextNode('text'),
+        document.createElement('section'),
         document.createElement('section'),
         document.createTextNode('text'),
       ];
       insertNodes(parent, current);
 
       const incomingNode = document.createElement('article');
-      const result = replaceChildrenWith(parent, current, incomingNode);
+      const result = replaceChildrenWith(current, incomingNode);
 
       expect(parent.childNodes.length).toBe(1);
       expect(parent.firstChild).toBe(incomingNode);
@@ -61,18 +51,17 @@ describe('runtime', () => {
     it('should replace the current nodes with a text node with the incoming text', () => {
       const parent = container();
       const current: NestedArray<Node> = [
-        [document.createElement('div')],
-        [
-          document.createElement('span'),
-          document.createElement('span'),
-          document.createElement('span'),
-          [document.createElement('section')],
-        ],
+        document.createElement('div'),
+
+        document.createElement('span'),
+        document.createElement('span'),
+        document.createElement('span'),
+        document.createElement('section'),
         document.createElement('section'),
       ];
       insertNodes(parent, current);
 
-      const result = replaceChildrenWith(parent, current, 'text');
+      const result = replaceChildrenWith(current, 'text');
       const expectedResult = document.createTextNode('text');
 
       expect(parent.childNodes.length).toBe(1);
@@ -80,21 +69,19 @@ describe('runtime', () => {
       expect(result).toStrictEqual(expectedResult);
     });
 
-    it('should replace the current nodes with aa empty text node if the incoming node was omitted', () => {
+    it('should replace the current nodes with an empty text node if the incoming node was omitted', () => {
       const parent = container();
       const current: NestedArray<Node> = [
-        [[document.createElement('div')]],
-        [
-          document.createElement('span'),
-          document.createElement('span'),
-          document.createElement('span'),
-          [document.createElement('section')],
-        ],
+        document.createElement('div'),
+        document.createElement('span'),
+        document.createElement('span'),
+        document.createElement('span'),
+        document.createElement('section'),
         document.createElement('section'),
       ];
       insertNodes(parent, current);
 
-      const result = replaceChildrenWith(parent, current);
+      const result = replaceChildrenWith(current);
       const expectedResult = document.createTextNode('');
 
       expect(parent.childNodes.length).toBe(1);
@@ -106,18 +93,18 @@ describe('runtime', () => {
       const parent = container();
       const currentTextNode = document.createTextNode('old text');
       const current: NestedArray<Node> = [
-        [document.createElement('div')],
-        [
-          document.createElement('span'),
-          document.createElement('span'),
-          document.createElement('span'),
-          [document.createElement('section'), currentTextNode],
-        ],
+        document.createElement('div'),
+
+        document.createElement('span'),
+        document.createElement('span'),
+        document.createElement('span'),
+        document.createElement('section'),
+        currentTextNode,
         document.createElement('section'),
       ];
       insertNodes(parent, current);
 
-      const result = replaceChildrenWith(parent, current, 'new text');
+      const result = replaceChildrenWith(current, 'new text');
 
       expect(parent.childNodes.length).toBe(1);
       expect(parent.firstChild).toBe(currentTextNode);
@@ -129,18 +116,18 @@ describe('runtime', () => {
       const parent = container();
       const currentElement = document.createElement('div');
       const current: NestedArray<Node> = [
-        [document.createElement('div')],
-        [
-          document.createElement('span'),
-          document.createElement('span'),
-          document.createElement('span'),
-          [document.createElement('section'), currentElement],
-        ],
+        document.createElement('div'),
+
+        document.createElement('span'),
+        document.createElement('span'),
+        document.createElement('span'),
+        document.createElement('section'),
+        currentElement,
         document.createElement('section'),
       ];
       insertNodes(parent, current);
 
-      const result = replaceChildrenWith(parent, current, currentElement);
+      const result = replaceChildrenWith(current, currentElement);
 
       expect(parent.childNodes.length).toBe(1);
       expect(parent.firstChild).toBe(currentElement);
@@ -154,23 +141,19 @@ describe('runtime', () => {
 
       const current: NestedArray<Node> = [
         document.createElement('div'),
-        [
-          document.createElement('span'),
-          document.createElement('span'),
-          document.createElement('span'),
-          [
-            document.createTextNode('text'),
-            document.createTextNode('text'),
-            document.createElement('section'),
-          ],
-        ],
+        document.createElement('span'),
+        document.createElement('span'),
+        document.createElement('span'),
+        document.createTextNode('text'),
+        document.createTextNode('text'),
+        document.createElement('section'),
         document.createElement('section'),
         document.createTextNode('text'),
       ];
       insertNodes(parent, current);
 
       const incomingNode = document.createElement('span');
-      const result = replaceChildrenWith(parent, current, incomingNode);
+      const result = replaceChildrenWith(current, incomingNode);
 
       expect(parent.childNodes.length).toBe(2);
       expect(parent.firstChild).toBe(notBeDeletedNode);
@@ -347,28 +330,28 @@ describe('runtime', () => {
       expect(makeDiv).toHaveBeenNthCalledWith(1, context);
     });
 
-    // it('should append an array of nodes', () => {
-    //   const parent = container();
-    //   const context = createContext(false);
+    it('should append an array of nodes', () => {
+      const parent = container();
+      const context = createContext(false);
 
-    //   const toInsert1 = [
-    //     42,
-    //     document.createElement('div'),
-    //     document.createElement('span'),
-    //   ];
+      const toInsert1 = [
+        42,
+        document.createElement('div'),
+        document.createElement('span'),
+      ];
 
-    //   insert(context, parent, toInsert1);
-    //   expect(parent.childNodes.length).toBe(3);
-    //   expect(parent.innerHTML).toBe('42<div></div><span></span>');
+      insert(context, parent, toInsert1);
+      expect(parent.childNodes.length).toBe(3);
+      expect(parent.innerHTML).toBe('42<div></div><span></span>');
 
-    //   const toInsert2 = [document.createElement('section'), 'text'];
+      const toInsert2 = [document.createElement('section'), 'text'];
 
-    //   insert(context, parent, toInsert2);
-    //   expect(parent.childNodes.length).toBe(5);
-    //   expect(parent.innerHTML).toBe(
-    //     '42<div></div><span></span><section></section>text'
-    //   );
-    // });
+      insert(context, parent, toInsert2);
+      expect(parent.childNodes.length).toBe(5);
+      expect(parent.innerHTML).toBe(
+        '42<div></div><span></span><section></section>text'
+      );
+    });
 
     // it('should replace the current array of nodes with the other single node', () => {
     //   const parent = container();

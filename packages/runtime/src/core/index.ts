@@ -30,7 +30,7 @@ export const renderQueue = new Map<
 
 export function createReactiveNode(
   parentContext: Context,
-  property: Property<unknown>,
+  property: Observable<unknown>,
   render: (context: Context) => any
 ) {
   const thisContext = createContext(true);
