@@ -40,6 +40,14 @@ export type PrimitiveType =
   | null;
 export type ImportStorage = Map<string, t.Identifier>;
 export type TemplateStorage = Map<string, t.Identifier>;
+export type TemplateDeclarations = t.VariableDeclaration[];
+
+export enum DataEntity {
+  Templates = 'templates',
+  TemplateDeclarations = 'templateDeclarations',
+  Imports = 'imports',
+  Config = 'config',
+}
 
 export type RuntimeFn =
   | 'insert'

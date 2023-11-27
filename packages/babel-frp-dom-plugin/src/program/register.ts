@@ -5,9 +5,11 @@ import * as t from '@babel/types';
 
 import {
   Config,
+  DataEntity,
   ImportStorage,
   JSXNodePath,
   RuntimeFn,
+  TemplateDeclarations,
   TemplateStorage,
 } from '../types';
 
@@ -16,10 +18,15 @@ export function registerTemplate(
   template: string
 ): t.Identifier {
   const programScope = path.scope.getProgramParent();
-  const data: TemplateStorage = programScope.getData('templates');
+  const templateStorage: TemplateStorage = programScope.getData(
+    DataEntity.Templates
+  );
+  const templateDeclarations: TemplateDeclarations = programScope.getData(
+    DataEntity.TemplateDeclarations
+  );
 
-  if (data.has(template)) {
-    return t.cloneNode(data.get(template)!, true);
+  if (templateStorage.has(template)) {
+    return t.cloneNode(templateStorage.get(template)!, true);
   }
 
   const id = path.scope.generateUidIdentifier('tmpl$');
@@ -39,10 +46,8 @@ export function registerTemplate(
     ),
   ]);
 
-  const program = programScope.block as t.Program;
-  const lastImportIdx = getIdxToInsertTemplate(program);
-  program.body.splice(lastImportIdx, 0, templateDecl);
-  data.set(template, id);
+  templateStorage.set(template, id);
+  templateDeclarations.push(templateDecl);
 
   return id;
 }
@@ -64,13 +69,4 @@ export function registerImport(
   });
   data.set(fnName, id);
   return id;
-}
-
-function getIdxToInsertTemplate(program: t.Program) {
-  let idx = 0;
-  while (t.isImportDeclaration(program.body[idx])) {
-    idx += 1;
-  }
-
-  return idx;
 }

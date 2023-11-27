@@ -1,18 +1,26 @@
 import { mount, withEffect, effect } from '@frp-dom/runtime';
 import { Atom } from '@frp-dom/data';
-import { map } from '@frp-dom/reactive-core';
+import { Cond } from '@frp-dom/condition';
 import './styles.css';
 
-const subAtom1 = Atom.new([123, 456]);
-const subAtom2 = Atom.new(['asd ', subAtom1, ' zxc']);
-
-const array = Atom.new([' text 2 ', subAtom1, ' text 3 ', subAtom2]);
-window.array = array;
-window.subAtom1 = subAtom1;
-window.subAtom2 = subAtom2;
+const Component = () => {
+  const text = Atom.new('text');
+  return withEffect(
+    <div ref={window.ref}>{text}</div>,
+    effect(() => {
+      console.log(window.ref);
+    })
+  );
+};
 
 const App = () => {
-  return <div>{array}</div>;
+  const flag = Atom.new(true);
+  window.flag = flag;
+  return (
+    <div>
+      <Cond if={flag} then={<Component />} />
+    </div>
+  );
 };
 
 const root = document.getElementById('root');

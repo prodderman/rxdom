@@ -195,6 +195,12 @@ export function isExpressionPath(
   return t.isExpression(path.node);
 }
 
+export function isIdentifierPath(
+  path: NodePath
+): path is NodePath<t.Expression> {
+  return t.isIdentifier(path.node);
+}
+
 export function isJSXExpressionContainerPath(
   path: NodePath<any>
 ): path is NodePath<t.JSXExpressionContainer> {

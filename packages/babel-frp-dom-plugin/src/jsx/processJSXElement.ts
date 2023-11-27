@@ -19,6 +19,7 @@ import {
   parseAttributeName,
   parseEventHandler,
 } from '../attributes';
+import { parseRef } from '../attributes/ref';
 
 export function processJSXElement(
   path: NodePath<t.JSXElement>
@@ -203,6 +204,12 @@ function processAttributes(
           );
         }
       }
+    } else if (parsedName.name === 'ref') {
+      const identifier = parseRef(parsedName, value);
+
+      if (identifier) {
+        expressions.push(t.assignmentExpression('=', identifier, nodeId));
+      }
     } else {
       const result = parseAttribute(parsedName, value);
 
@@ -218,7 +225,10 @@ function processAttributes(
               result.expression,
             ])
           );
-        } else if (parsedName.name === 'class') {
+        } else if (
+          parsedName.name === 'class' ||
+          parsedName.name === 'className'
+        ) {
           expressions.push(
             t.callExpression(registerImport(attributePath, 'setClass'), [
               nodeId,

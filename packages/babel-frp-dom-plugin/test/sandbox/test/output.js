@@ -1,11 +1,17 @@
 import { template as _$template } from '@frp/runtime';
 import { insert as _$insert } from '@frp/runtime';
-const _tmpl$ = /*#__PURE__*/ _$template(`<div><!><span></span></div>`);
-const a = (context) => {
-  const _div = _tmpl$(),
-    _marker = _div.firstChild,
-    _span = _marker.nextSibling;
-  _$insert(context, _div, atom, _marker);
-  _$insert(context, _span, atom2);
-  return _div;
+const _tmpl$ = /*#__PURE__*/ _$template(`<div></div>`);
+const Component = () => {
+  const text = Atom.new('text');
+  return withEffect(
+    (context) => {
+      const _div = _tmpl$();
+      window.ref = _div;
+      _$insert(context, _div, text);
+      return _div;
+    },
+    effect(() => {
+      console.log(window.ref);
+    })
+  );
 };

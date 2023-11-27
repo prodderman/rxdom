@@ -51,7 +51,6 @@ export function parseAttribute(
       return {
         key,
         template: `${name}="${evalResult.value.toString()}"`,
-        expression: evalResult.expression,
       };
     }
 

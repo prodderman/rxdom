@@ -1,6 +1,9 @@
-const a = (
-  <div>
-    {atom}
-    <span>{atom2}</span>
-  </div>
-);
+const Component = () => {
+  const text = Atom.new('text');
+  return withEffect(
+    <div ref={window.ref}>{text}</div>,
+    effect(() => {
+      console.log(window.ref);
+    })
+  );
+};

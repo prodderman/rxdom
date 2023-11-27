@@ -11,7 +11,8 @@
   },
   "scripts": {
     "build": "microbundle build --tsconfig tsconfig.lib.json --compress --target=node --strict -f cjs",
-    "test-sandbox": "jest test/sandbox.test.ts -c ./jest.config.ts "
+    "test": "jest test/dom.test.ts -c ./jest.config.ts",
+    "test-sandbox": "jest test/sandbox.test.ts -c ./jest.config.ts"
   },
   "dependencies": {
     "@babel/core": "^7.20.12",
