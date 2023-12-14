@@ -23,7 +23,7 @@
         "packages/data/src/index.ts"
       ],
       "@frp-dom/enumerate": [
-        "packages/enumerate/src/index.ts"
+        "packages/enumerate/src/index.tsx"
       ],
       "@frp-dom/frp-dom-transformer": [
         "dist/packages/babel-frp-dom-plugin/index.js"

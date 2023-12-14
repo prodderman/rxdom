@@ -3,6 +3,8 @@ export { template } from './template';
 export { withEffect, effect } from './effect';
 export { insert } from './insert';
 export { createComponent } from './component';
+export { mapListByIndex } from './list';
+export type { Context, Effect } from './core';
 export {
   setAttribute,
   spreadAttributes,

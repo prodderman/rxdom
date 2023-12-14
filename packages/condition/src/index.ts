@@ -1,8 +1,8 @@
 import type { JSX } from '@frp-dom/runtime';
-import { type Property, isProperty, map } from '@frp-dom/reactive-core';
+import { isProperty, map } from '@frp-dom/reactive-core';
 
 export type ConditionProps = {
-  if: unknown | Property<unknown>;
+  if: unknown;
   then: JSX.Element;
   else?: JSX.Element;
 };

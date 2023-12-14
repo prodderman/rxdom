@@ -1,9 +1,4 @@
-const Component = () => {
-  const text = Atom.new('text');
-  return withEffect(
-    <div ref={window.ref}>{text}</div>,
-    effect(() => {
-      console.log(window.ref);
-    })
-  );
-};
+mount(
+  <Cond if={atom1} then={<For each={list}>{(n) => <div>{n}</div>}</For>} />,
+  root
+);

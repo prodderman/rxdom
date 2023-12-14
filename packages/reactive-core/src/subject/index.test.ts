@@ -1,16 +1,16 @@
-import { newSubject } from './index';
-describe('subject', () => {
+import { newScheduler } from './index';
+describe('scheduler', () => {
   it('should notify subscribers', () => {
-    const subject = newSubject();
+    const scheduler = newScheduler(true);
     const fn = jest.fn();
 
-    const subscription = subject.subscribe({ next: fn });
+    const subscription = scheduler.subscribe({ next: fn });
     expect(fn).not.toHaveBeenCalled();
 
-    subject.next(42);
+    scheduler.next(42);
     expect(fn).toHaveBeenNthCalledWith(1, 42);
 
-    subject.next('foo');
+    scheduler.next('foo');
     expect(fn).toHaveBeenNthCalledWith(2, 'foo');
 
     subscription.unsubscribe();
@@ -18,48 +18,64 @@ describe('subject', () => {
   });
 
   it('should not notify newcomer subscribers during notifying', () => {
-    const subject = newSubject();
+    const scheduler = newScheduler(true);
     const fn = jest.fn();
 
-    subject.subscribe({ next: () => subject.subscribe({ next: fn }) });
+    scheduler.subscribe({ next: () => scheduler.subscribe({ next: fn }) });
     expect(fn).not.toHaveBeenCalled();
 
-    subject.next(42);
+    scheduler.next(42);
     expect(fn).not.toHaveBeenCalled();
   });
 
-  it('should not notify only once if next is called during notifying', () => {
-    const sourceSubject = newSubject<void>();
-    const childSubject1 = newSubject<void>();
-    const childSubject2 = newSubject<void>();
-    const childSubject3 = newSubject<void>();
-    const mergedSubject = newSubject<void>();
+  it('should notify only if it is a source', () => {
+    const nonSourceScheduler = newScheduler(false);
+    const nonSourceObserverFn = jest.fn();
+
+    nonSourceScheduler.subscribe({ next: nonSourceObserverFn });
+    nonSourceScheduler.next(42);
+    expect(nonSourceObserverFn).not.toHaveBeenCalled();
+
+    const sourceScheduler = newScheduler(true);
+    const sourceObserverFn = jest.fn();
+
+    sourceScheduler.subscribe({ next: sourceObserverFn });
+    sourceScheduler.next(42);
+    expect(sourceObserverFn).toHaveBeenCalledTimes(1);
+  });
+
+  it('should notify only once if next is called during notifying', () => {
+    const sourceScheduler = newScheduler<void>(true);
+    const childScheduler1 = newScheduler<void>();
+    const childScheduler2 = newScheduler<void>();
+    const childScheduler3 = newScheduler<void>();
+    const mergedScheduler = newScheduler<void>();
 
     const next = jest.fn();
 
-    mergedSubject.subscribe({ next });
+    mergedScheduler.subscribe({ next });
 
-    sourceSubject.subscribe({
+    sourceScheduler.subscribe({
       next: () => {
-        childSubject1.next();
-        childSubject2.next();
-        childSubject3.next();
+        childScheduler1.next();
+        childScheduler2.next();
+        childScheduler3.next();
       },
     });
 
-    childSubject1.subscribe({
-      next: mergedSubject.next,
+    childScheduler1.subscribe({
+      next: mergedScheduler.next,
     });
 
-    childSubject2.subscribe({
-      next: mergedSubject.next,
+    childScheduler2.subscribe({
+      next: mergedScheduler.next,
     });
 
-    childSubject3.subscribe({
-      next: mergedSubject.next,
+    childScheduler3.subscribe({
+      next: mergedScheduler.next,
     });
 
-    sourceSubject.next();
+    sourceScheduler.next();
     expect(next).toHaveBeenCalledTimes(1);
   });
 });

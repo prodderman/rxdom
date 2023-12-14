@@ -1,27 +1,57 @@
 import { mount, withEffect, effect } from '@frp-dom/runtime';
 import { Atom } from '@frp-dom/data';
 import { Cond } from '@frp-dom/condition';
+import { For } from '@frp-dom/enumerate';
+import { Property, map } from '@frp-dom/reactive-core';
 import './styles.css';
 
-const Component = () => {
-  const text = Atom.new('text');
+const atom1 = (window.atom1 = Atom.new(true));
+const list = (window.list = Atom.new([1, 2, 3, 4, 5, 6]));
+
+const Child2 = ({ n }: { n: Property<number> }) => {
   return withEffect(
-    <div ref={window.ref}>{text}</div>,
+    <ChildOfChild2 n={n} />,
     effect(() => {
-      console.log(window.ref);
+      performance.mark('Child2 mount');
+      console.log('Child2 mount');
+
+      return () => {
+        performance.mark('Child2 unmount');
+        console.log('Child2 unmount');
+      };
     })
   );
 };
 
-const App = () => {
-  const flag = Atom.new(true);
-  window.flag = flag;
-  return (
-    <div>
-      <Cond if={flag} then={<Component />} />
-    </div>
+const ChildOfChild2 = ({ n }: { n: Property<number> }) => {
+  return withEffect(
+    <div>ChildOfChild2 with n: {n}</div>,
+    effect(() => {
+      performance.mark('ChildOfChild2 mount');
+      console.log('ChildOfChild2 mount');
+
+      return () => {
+        performance.mark('ChildOfChild2 unmount');
+        console.log('ChildOfChild2 unmount');
+      };
+    })
   );
 };
 
+// const App = () => {
+//   return (
+//     <div>
+//       <button onclick={() => atom1.modify((v) => !v)}>toggle</button>
+//       <Cond
+//         if={atom1}
+//         then={<For each={list}>{(n) => <Child2 n={n} />}</For>}
+//       />
+//     </div>
+//   );
+// };
+
 const root = document.getElementById('root');
-mount(<App />, root);
+mount(
+  map(atom1, (flag) => flag && list),
+  root
+);

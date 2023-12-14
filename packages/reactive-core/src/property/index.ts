@@ -1,27 +1,35 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
+  InteropObservableHolder,
+  newInteropObservable,
+  observableSymbol,
+} from '../interop-observable';
+import {
   merge,
   type Observable,
   type Observer,
   type Subscription,
   subscriptionNever,
 } from '../observable';
-import { newSubject } from '../subject';
+import { newScheduler } from '../subject';
 
 const propertySymbol = Symbol('property');
 
-export interface Property<A> extends Observable<unknown> {
+export interface Property<A>
+  extends Observable<unknown>,
+    InteropObservableHolder<A> {
   get(): A;
   [propertySymbol]: void;
 }
 
 export function newProperty<A>(
   get: () => A,
-  subscribe: (observer: Observer<A>) => Subscription
+  subscribe: (observer: Observer<unknown>) => Subscription
 ): Property<A> {
   return {
     get,
     subscribe,
+    [observableSymbol]: () => newInteropObservable(get, subscribe),
     [propertySymbol]: void 0,
   };
 }
@@ -30,27 +38,9 @@ export function map<A, B>(
   target: Property<A>,
   project: (a: A) => B
 ): Property<B> {
-  let lastTargetValue: A;
-  let lastResult: B;
-
-  const get = () => {
-    if (lastTargetValue !== (lastTargetValue = target.get())) {
-      lastResult = project(lastTargetValue);
-    }
-
-    return lastResult;
-  };
-
-  const subscribe = (observer: Observer<B>) => {
-    let last = get();
-    return target.subscribe({
-      next: () => {
-        if (last !== (last = get())) {
-          observer.next(last);
-        }
-      },
-    });
-  };
+  const get = memoPropertyProject(project, target);
+  const subscribe = (observer: Observer<B>) =>
+    target.subscribe(memoObserver(get, observer));
 
   return newProperty(get, subscribe);
 }
@@ -82,31 +72,23 @@ export const combine = <Properties extends Property<unknown>[], Result>(
     return map(properties[0], project);
   }
 
-  const subject = newSubject<Result>(false);
+  const scheduler = newScheduler(false);
   const merged = merge(properties);
-  const get = memoizePropertiesProject(project, properties);
+  const get = memoPropertiesProject(project, properties);
 
   let outerSubscription: Subscription | undefined;
-  let lastValue: Result;
 
   const outerDisposer = () => {
-    if (subject.observers === 0 && outerSubscription) {
+    if (scheduler.observers === 0 && outerSubscription) {
       outerSubscription.unsubscribe();
       outerSubscription = undefined;
     }
   };
 
-  const subscribe = (listener: Observer<Result>): Subscription => {
-    lastValue = get();
-    const inner = subject.subscribe(listener);
-    if (!outerSubscription && subject.observers > 0) {
-      outerSubscription = merged.subscribe({
-        next: () => {
-          if (lastValue !== (lastValue = get())) {
-            subject.next(lastValue);
-          }
-        },
-      });
+  const subscribe = (listener: Observer<unknown>): Subscription => {
+    const inner = scheduler.subscribe(listener);
+    if (!outerSubscription && scheduler.observers > 0) {
+      outerSubscription = merged.subscribe(memoObserver(get, scheduler));
     }
     return {
       unsubscribe() {
@@ -119,7 +101,23 @@ export const combine = <Properties extends Property<unknown>[], Result>(
   return newProperty(get, subscribe);
 };
 
-function memoizePropertiesProject<R>(
+export function memoPropertyProject<A, B>(
+  project: (value: A) => B,
+  target: Property<A>
+): () => B {
+  let lastTargetValue: A;
+  let lastResult: B;
+
+  return () => {
+    if (lastTargetValue !== (lastTargetValue = target.get())) {
+      lastResult = project(lastTargetValue);
+    }
+
+    return lastResult;
+  };
+}
+
+function memoPropertiesProject<R>(
   project: (...args: unknown[]) => R,
   properties: Property<unknown>[]
 ): () => R {
@@ -152,3 +150,17 @@ const propertyNever = newProperty<never>(
   () => void 0 as never,
   () => subscriptionNever
 );
+
+function memoObserver<T>(
+  get: () => T,
+  observer: Observer<unknown>
+): Observer<unknown> {
+  let lastValue = get();
+  return {
+    next(value) {
+      if (lastValue !== (lastValue = get())) {
+        observer.next(value);
+      }
+    },
+  };
+}

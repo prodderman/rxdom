@@ -7,30 +7,23 @@ export interface Subject<A = unknown> extends Observable<A>, Observer<A> {
 }
 
 let time = -1;
-let transacting = false;
+let batching = false;
 
-export function now() {
-  return time;
-}
+const notificationQueue = new Map<(value: any) => void, any>();
+export function batch<A>(fn: () => A): A {
+  if (batching) return fn();
 
-const taskQueue = new Map<(value: any) => void, any>();
-export function transact<A>(fn: () => A): A {
-  if (transacting) return fn();
-
-  transacting = true;
+  batching = true;
   const result = fn();
-  for (const [task, value] of taskQueue) {
-    taskQueue.delete(task);
+  for (const [task, value] of notificationQueue) {
+    notificationQueue.delete(task);
     task(value);
   }
-  transacting = false;
+  batching = false;
   return result;
 }
 
-export function newSubject<A = unknown>(
-  source: boolean,
-  lastValue?: A
-): Subject<A> {
+export function newScheduler<A = any>(source: boolean = false): Subject<A> {
   const listeners = new Set<Observer<A>>();
   const pendingListeners = new Set<Observer<A>>();
   let subscriptionCount = 0;
@@ -38,9 +31,10 @@ export function newSubject<A = unknown>(
   let notifying = false;
 
   const notify = (value: A) => {
-    if (lastValue !== value && lastTime !== (source ? ++time : time)) {
+    if (source) time++;
+
+    if (source || lastTime !== time) {
       lastTime = time;
-      lastValue = value;
 
       if (listeners.size > 0) {
         notifying = true;
@@ -59,8 +53,8 @@ export function newSubject<A = unknown>(
 
   return {
     next(value) {
-      if (transacting) {
-        taskQueue.set(notify, value);
+      if (batching) {
+        notificationQueue.set(notify, value);
       } else {
         notify(value);
       }
@@ -68,7 +62,7 @@ export function newSubject<A = unknown>(
     subscribe(listener) {
       subscriptionCount++;
 
-      if (notifying) {
+      if (notifying && !listeners.has(listener)) {
         pendingListeners.add(listener);
       } else {
         listeners.add(listener);

@@ -1,20 +1,10 @@
 import { type Property, isProperty, merge } from '@frp-dom/reactive-core';
-import { isEffectful } from '../effect';
-import { createEffectfulNode, createReactiveNode, Context } from '../core';
+import { createReactiveNode, Context } from '../core';
 
 export type MountableElement = ParentNode;
 
 export function insert(
-  context: Context,
-  parent: MountableElement,
-  value: any,
-  current?: any
-): any {
-  return insertExpression(context, parent, value, current);
-}
-
-function insertExpression(
-  context: Context,
+  parentContext: Context,
   parentNode: MountableElement,
   value: any,
   current?: any,
@@ -23,7 +13,7 @@ function insertExpression(
   let t,
     isCurrentArray = Array.isArray(current);
 
-  while ((t = typeof value) === 'function') value = value(context);
+  while ((t = typeof value) === 'function') value = value(parentContext);
 
   switch (true) {
     case t === 'string' || t === 'number' || t === 'bigint' || t === 'symbol': {
@@ -42,24 +32,15 @@ function insertExpression(
       return insertText(parentNode, current);
     }
     case isProperty(value): {
-      return createReactiveNode(context, value, (newContext) => {
-        current = insertExpression(
-          newContext,
-          parentNode,
-          value.get(),
-          current
-        );
+      createReactiveNode(parentContext, value, (newContext) => {
+        current = insert(newContext, parentNode, value.get(), current);
       });
-    }
-    case isEffectful(value): {
-      return createEffectfulNode(context, value[1], (newContext) =>
-        insertExpression(newContext, parentNode, value[0], current)
-      );
+      return current;
     }
     case value[Symbol.iterator] != null: {
       const normalizedBuffer: Element[] = [];
       const reactiveBuffer = normalizeArray(
-        context,
+        parentContext,
         isCurrentArray ? current : current ? [current] : [],
         normalizedBuffer,
         value,
@@ -67,11 +48,11 @@ function insertExpression(
       );
 
       if (reactiveBuffer.length > 0) {
-        return createReactiveNode(
-          context,
+        createReactiveNode(
+          parentContext,
           merge(reactiveBuffer),
           (newContext) =>
-            (current = insertExpression(
+            (current = insert(
               newContext,
               parentNode,
               normalizedBuffer,
@@ -79,6 +60,7 @@ function insertExpression(
               true
             ))
         );
+        return current;
       }
 
       if (normalizedBuffer.length === 0) {

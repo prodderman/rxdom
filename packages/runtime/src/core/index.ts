@@ -1,10 +1,13 @@
 import {
-  Observable,
-  Property,
+  type Observable,
+  type Property,
+  Scheduler,
   Subscription,
-  observerNever,
-  transact,
+  isProperty,
+  newProperty,
+  Observer,
 } from '@frp-dom/reactive-core';
+import type { JSX } from '../jsx-runtime';
 
 export type Effect = Observable<never>;
 
@@ -14,61 +17,107 @@ export type Context = {
   children?: Set<Context>;
 };
 
-export function createContext(property: boolean): Context {
-  return {
+export function createContext(
+  property: boolean,
+  parent: Context | null
+): Context {
+  const newContext = {
     property,
   };
+
+  if (parent) {
+    (parent.children ??= new Set()).add(newContext);
+  }
+
+  return newContext;
+}
+
+export function continueWithContext(context: Context, updater: unknown) {
+  while (typeof updater === 'function') updater = updater(context);
+  return updater as JSX.Element;
 }
 
 let isUpdating = false;
-const disposeQueue = new Set<Context>();
-const effectsQueue = new Map<Context, Effect>();
-export const renderQueue = new Map<
-  (context: Context) => any,
-  [Context | null, Context]
->();
+export const DOMUpdatesQueue = new Set<() => void>();
+const effectsQueue = new Set<() => void>();
+
+export function doReflow(initiator = !isUpdating): void {
+  if (initiator) {
+    isUpdating = true;
+
+    if (DOMUpdatesQueue.size > 0) {
+      let iterations = DOMUpdatesQueue.size;
+      for (const reflow of DOMUpdatesQueue) {
+        DOMUpdatesQueue.delete(reflow);
+        iterations--;
+        reflow();
+        if (iterations === 0) break;
+      }
+    }
+
+    if (effectsQueue.size > 0) {
+      for (const effect of effectsQueue) {
+        effectsQueue.delete(effect);
+        effect();
+      }
+    }
+
+    if (DOMUpdatesQueue.size > 0) return doReflow(initiator);
+
+    isUpdating = false;
+  }
+}
+
+export const reflowScheduler: Scheduler = {
+  schedule(work) {
+    // move the already queued work to the end of the reflow queue
+    DOMUpdatesQueue.delete(work);
+    DOMUpdatesQueue.add(work);
+
+    // run reflows and effects
+    doReflow();
+  },
+};
+
+export const effectScheduler: Scheduler = {
+  schedule(effect) {
+    effectsQueue.add(effect);
+  },
+};
 
 export function createReactiveNode(
   parentContext: Context,
-  property: Observable<unknown>,
-  render: (context: Context) => any
+  observable: Observable<unknown>,
+  update: (context: Context) => any
 ) {
-  const thisContext = createContext(true);
-  (parentContext.children ??= new Set()).add(thisContext);
+  const thisContext = createContext(true, parentContext);
+  let initial = true;
 
-  let subscribing = true;
-  thisContext.disposer = property.subscribe({
+  const work = () => {
+    if (parentContext.children?.has(thisContext)) {
+      initial = false;
+      update(thisContext);
+    }
+  };
+
+  thisContext.disposer = observable.subscribe({
     next: () => {
-      if (subscribing) return;
-      disposeQueue.add(thisContext);
-      renderQueue.set(render, [parentContext, thisContext]);
-      runFlow();
+      if (initial) return;
+      disposeContext(thisContext, false); // TODO: need to be scheduled?
+      reflowScheduler.schedule(work);
     },
   });
-  subscribing = false;
 
-  return render(thisContext);
+  reflowScheduler.schedule(work);
 }
 
-export function createEffectfulNode(
-  parentContext: Context,
-  effect: Effect,
-  render: (context: Context) => any
-) {
-  const thisContext = createContext(false);
-  (parentContext.children ??= new Set()).add(thisContext);
-  effectsQueue.set(thisContext, effect);
-
-  return render(thisContext);
-}
-
-export function disposeContext(context: Context, completely: boolean) {
-  if (context.property && context.disposer && completely) {
-    transact(() => context.disposer?.unsubscribe());
+export function disposeContext(context: Context, destroy: boolean) {
+  if (destroy && context.property && context.disposer) {
+    context.disposer.unsubscribe();
     delete context.disposer;
   }
 
-  if (context.children && context.children?.size > 0) {
+  if (context.children && context.children.size > 0) {
     for (const childContext of context.children) {
       context.children.delete(childContext);
       disposeContext(childContext, true);
@@ -77,46 +126,7 @@ export function disposeContext(context: Context, completely: boolean) {
   }
 
   if (!context.property && context.disposer) {
-    transact(() => context.disposer!.unsubscribe());
+    context.disposer.unsubscribe();
     delete context.disposer;
-  }
-}
-
-export function runFlow(initiator = !isUpdating): void {
-  if (initiator) {
-    isUpdating = true;
-
-    // Disposing
-    if (disposeQueue.size > 0) {
-      for (const context of disposeQueue) {
-        disposeQueue.delete(context);
-        disposeContext(context, false);
-      }
-    }
-
-    // Render
-    if (renderQueue.size > 0) {
-      let iterations = renderQueue.size;
-      for (const [render, [parentContext, context]] of renderQueue) {
-        renderQueue.delete(render);
-        iterations--;
-
-        if (parentContext === null || parentContext.children?.has(context))
-          render(context);
-        if (iterations === 0) break;
-      }
-    }
-
-    // Effects
-    if (effectsQueue.size > 0) {
-      for (const [context, effect] of effectsQueue) {
-        effectsQueue.delete(context);
-        context.disposer = transact(() => effect.subscribe(observerNever));
-      }
-    }
-
-    if (renderQueue.size > 0) return runFlow(true);
-
-    isUpdating = false;
   }
 }

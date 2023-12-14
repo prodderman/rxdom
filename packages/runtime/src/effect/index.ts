@@ -1,5 +1,17 @@
-import { Observable, subscriptionNever, merge } from '@frp-dom/reactive-core';
-import { Effect } from '../core';
+import {
+  Observable,
+  subscriptionNever,
+  merge,
+  subscribeOn,
+  observerNever,
+} from '@frp-dom/reactive-core';
+import {
+  Context,
+  Effect,
+  continueWithContext,
+  createContext,
+  effectScheduler,
+} from '../core';
 
 const effectfulSymbol = Symbol('effectful');
 
@@ -27,6 +39,18 @@ export function effect(
       return unsubscribe ? { unsubscribe } : subscriptionNever;
     },
   };
+}
+
+export function createEffectfulNode(
+  parentContext: Context,
+  effectful: Effectful<unknown>
+) {
+  const thisContext = createContext(false, parentContext);
+  thisContext.disposer = subscribeOn(effectful[1], effectScheduler).subscribe(
+    observerNever
+  );
+
+  return continueWithContext(thisContext, effectful[0]);
 }
 
 export function isEffectful(entity: any): entity is Effectful<unknown> {

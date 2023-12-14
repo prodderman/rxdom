@@ -1,5 +1,5 @@
 export interface Observer<A> {
-  readonly next: (value: A) => void;
+  next(value: A): void;
 }
 
 export interface Subscription {
