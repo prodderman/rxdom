@@ -1,5 +1,5 @@
 import { Property, isProperty } from '@frp-dom/reactive-core';
-import { Context, createReactiveNode } from '../core';
+import { Context, insertReactiveNode } from '../core';
 
 export function spreadAttributes(
   context: Context,
@@ -44,7 +44,7 @@ export function setAttribute(
       node.setAttribute(key, value);
     }
   } else {
-    createReactiveNode(context, value, (newContext) =>
+    insertReactiveNode(context, value, void 0, (newContext) =>
       setAttribute(newContext, node, key, value.get())
     );
   }
@@ -58,7 +58,7 @@ export function setValue(context: Context, node: HTMLInputElement, value: any) {
       node.value = value;
     }
   } else {
-    createReactiveNode(context, value, (newContext) =>
+    insertReactiveNode(context, value, void 0, (newContext) =>
       setValue(newContext, node, value.get())
     );
   }
@@ -69,16 +69,18 @@ export function setStyle(
   node: HTMLElement,
   value: any,
   current?: any
-) {
+): any {
+  while (typeof current === 'function') current = current();
+
   const nodeStyle = node.style;
   if (isProperty(value)) {
-    createReactiveNode(
+    return insertReactiveNode(
       context,
       value,
-      (newContext) =>
-        (current = setStyle(newContext, node, value.get(), current))
+      current,
+      (newContext, newResult) =>
+        setStyle(newContext, node, value.get(), newResult)
     );
-    return current;
   }
 
   if (typeof value === 'object') {
@@ -118,7 +120,7 @@ function setStyleProperty(
       current[name] = value;
     }
   } else {
-    createReactiveNode(context, value, (newContext) =>
+    insertReactiveNode(context, value, void 0, (newContext) =>
       setStyleProperty(newContext, css, name, value.get(), current)
     );
   }
@@ -130,7 +132,7 @@ export function setClass(context: Context, node: Element, value: any) {
     if (value == null) node.removeAttribute('class');
     else node.className = value;
   } else {
-    createReactiveNode(context, value, (newContext) =>
+    insertReactiveNode(context, value, void 0, (newContext) =>
       setClass(newContext, node, value.get())
     );
   }
@@ -145,25 +147,26 @@ export function setEventListener(
     | Property<EventListenerOrEventListenerObject>,
   capture: boolean,
   prevHandler?: EventListenerOrEventListenerObject
-) {
+): any {
   if (!isProperty(handler)) {
     if (handler !== prevHandler) {
       prevHandler && node.removeEventListener(name, prevHandler);
       node.addEventListener(name, (prevHandler = handler), capture);
     }
   } else {
-    createReactiveNode(
+    return insertReactiveNode(
       context!,
       handler,
-      (newContext) =>
-        (prevHandler = setEventListener(
+      prevHandler,
+      (newContext, newHandler) =>
+        setEventListener(
           newContext,
           node,
           name,
           handler.get(),
           capture,
-          prevHandler
-        ))
+          newHandler
+        )
     );
   }
 

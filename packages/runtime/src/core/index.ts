@@ -1,36 +1,9 @@
-import {
-  type Observable,
-  type Property,
-  Scheduler,
-  Subscription,
-  isProperty,
-  newProperty,
-  Observer,
-} from '@frp-dom/reactive-core';
+import { type Observable, type Scheduler } from '@frp-dom/reactive-core';
 import type { JSX } from '../jsx-runtime';
 
 export type Effect = Observable<never>;
 
-export type Context = {
-  property: boolean;
-  disposer?: Subscription;
-  children?: Set<Context>;
-};
-
-export function createContext(
-  property: boolean,
-  parent: Context | null
-): Context {
-  const newContext = {
-    property,
-  };
-
-  if (parent) {
-    (parent.children ??= new Set()).add(newContext);
-  }
-
-  return newContext;
-}
+export type Context = Set<() => void>;
 
 export function continueWithContext(context: Context, updater: unknown) {
   while (typeof updater === 'function') updater = updater(context);
@@ -38,22 +11,21 @@ export function continueWithContext(context: Context, updater: unknown) {
 }
 
 let isUpdating = false;
-export const DOMUpdatesQueue = new Set<() => void>();
+const renderQueue = new Set<() => void>();
 const effectsQueue = new Set<() => void>();
 
-export function doReflow(initiator = !isUpdating): void {
+export function runFlow(initiator = !isUpdating): void {
   if (initiator) {
     isUpdating = true;
 
-    if (DOMUpdatesQueue.size > 0) {
-      let iterations = DOMUpdatesQueue.size;
-      for (const reflow of DOMUpdatesQueue) {
-        DOMUpdatesQueue.delete(reflow);
-        iterations--;
-        reflow();
-        if (iterations === 0) break;
+    if (renderQueue.size > 0) {
+      for (const update of renderQueue) {
+        renderQueue.delete(update);
+        update();
       }
     }
+
+    performance.mark('run effects');
 
     if (effectsQueue.size > 0) {
       for (const effect of effectsQueue) {
@@ -62,20 +34,20 @@ export function doReflow(initiator = !isUpdating): void {
       }
     }
 
-    if (DOMUpdatesQueue.size > 0) return doReflow(initiator);
+    if (renderQueue.size > 0) return runFlow(initiator);
 
     isUpdating = false;
   }
 }
 
-export const reflowScheduler: Scheduler = {
+export const updateScheduler: Scheduler = {
   schedule(work) {
     // move the already queued work to the end of the reflow queue
-    DOMUpdatesQueue.delete(work);
-    DOMUpdatesQueue.add(work);
+    renderQueue.delete(work);
+    renderQueue.add(work);
 
-    // run reflows and effects
-    doReflow();
+    // run updates and effects
+    runFlow();
   },
 };
 
@@ -85,48 +57,64 @@ export const effectScheduler: Scheduler = {
   },
 };
 
-export function createReactiveNode(
-  parentContext: Context,
-  observable: Observable<unknown>,
-  update: (context: Context) => any
-) {
-  const thisContext = createContext(true, parentContext);
-  let initial = true;
+export function createRootNode(render: (context: Context) => any) {
+  let alive = true;
+  const thisContext: Context = new Set();
 
   const work = () => {
-    if (parentContext.children?.has(thisContext)) {
-      initial = false;
-      update(thisContext);
+    if (alive) {
+      render(thisContext);
     }
   };
 
-  thisContext.disposer = observable.subscribe({
+  updateScheduler.schedule(work);
+
+  return () => {
+    alive = false;
+    disposeContext(thisContext);
+  };
+}
+
+export function insertReactiveNode(
+  parentContext: Context,
+  observable: Observable<any>,
+  result: any,
+  render: (context: Context, renderResult: any) => any
+): () => any {
+  let alive = true;
+  const thisContext: Context = new Set();
+
+  const work = () => {
+    if (alive) {
+      result = render(thisContext, result);
+    }
+  };
+
+  let subscribed = false;
+  const subscription = observable.subscribe({
     next: () => {
-      if (initial) return;
-      disposeContext(thisContext, false); // TODO: need to be scheduled?
-      reflowScheduler.schedule(work);
+      if (subscribed) {
+        disposeContext(thisContext); // TODO: need to be scheduled?
+        updateScheduler.schedule(work);
+      }
     },
   });
 
-  reflowScheduler.schedule(work);
+  parentContext.add(() => {
+    alive = false;
+    subscription.unsubscribe();
+    disposeContext(thisContext);
+  });
+  subscribed = true;
+
+  updateScheduler.schedule(work);
+
+  return () => result;
 }
 
-export function disposeContext(context: Context, destroy: boolean) {
-  if (destroy && context.property && context.disposer) {
-    context.disposer.unsubscribe();
-    delete context.disposer;
-  }
-
-  if (context.children && context.children.size > 0) {
-    for (const childContext of context.children) {
-      context.children.delete(childContext);
-      disposeContext(childContext, true);
-    }
-    delete context.children;
-  }
-
-  if (!context.property && context.disposer) {
-    context.disposer.unsubscribe();
-    delete context.disposer;
+export function disposeContext(context: Context) {
+  for (const dispose of context) {
+    context.delete(dispose);
+    dispose();
   }
 }

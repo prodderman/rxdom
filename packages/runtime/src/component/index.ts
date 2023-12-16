@@ -1,23 +1,42 @@
-import { batch } from '@frp-dom/reactive-core';
-import { Context, continueWithContext, DOMUpdatesQueue } from '../core';
+import {
+  batch,
+  observableNever,
+  observerNever,
+  subscribeOn,
+} from '@frp-dom/reactive-core';
+import {
+  Context,
+  continueWithContext,
+  disposeContext,
+  effectScheduler,
+} from '../core';
 import type { JSX } from '../jsx-runtime';
-import { isEffectful, createEffectfulNode } from '../effect';
+import { isEffectful } from '../effect';
 
 export function createComponent(
   Component: (props: object) => JSX.Element,
   props: object
 ) {
   return (parentContext: Context) => {
-    const queueSizeBeforeRender = DOMUpdatesQueue.size;
     const result = batch(() => Component(props));
 
-    if (queueSizeBeforeRender !== DOMUpdatesQueue.size) {
-      console.error(
-        `WARNING: State changed in "${Component.name}" while rendering`
-      );
-    }
     if (isEffectful(result)) {
-      return createEffectfulNode(parentContext, result);
+      if (result[1] === observableNever) {
+        return continueWithContext(parentContext, result[0]);
+      }
+
+      const thisContext: Context = new Set();
+
+      const subscription = subscribeOn(result[1], effectScheduler).subscribe(
+        observerNever
+      );
+
+      parentContext.add(() => {
+        disposeContext(thisContext);
+        subscription.unsubscribe();
+      });
+
+      return continueWithContext(thisContext, result[0]);
     }
 
     return continueWithContext(parentContext, result);

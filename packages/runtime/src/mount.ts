@@ -1,15 +1,14 @@
 import type { JSX } from './jsx-runtime';
 import { insert } from './insert';
-import { disposeContext, createContext, reflowScheduler } from './core';
+import { createRootNode } from './core';
 
 type Unmount = () => void;
 
 export function mount(tree: JSX.Element, element: Element): Unmount {
-  const rootContext = createContext(false, null);
-  reflowScheduler.schedule(() => insert(rootContext, element, tree));
+  const dispose = createRootNode((context) => insert(context, element, tree));
 
   return () => {
-    disposeContext(rootContext, true);
+    dispose();
     element.innerHTML = '';
   };
 }

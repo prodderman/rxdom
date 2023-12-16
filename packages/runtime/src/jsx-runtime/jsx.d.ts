@@ -25,6 +25,9 @@ export namespace JSX {
   interface EffectfulElement extends Effectful<Element> {}
   interface ArrayElement extends Array<Element> {}
   interface DynamicElement extends Dynamic<Element> {}
+  interface ElementChildrenAttribute {
+    children: {};
+  }
   type FunctionElement = () => Element;
 
   interface AriaAttributes {

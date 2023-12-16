@@ -1,5 +1,5 @@
 import { type Property, isProperty, merge } from '@frp-dom/reactive-core';
-import { createReactiveNode, Context } from '../core';
+import { insertReactiveNode, Context } from '../core';
 
 export type MountableElement = ParentNode;
 
@@ -10,6 +10,7 @@ export function insert(
   current?: any,
   unwrap?: boolean
 ): any {
+  while (typeof current === 'function') current = current();
   let t,
     isCurrentArray = Array.isArray(current);
 
@@ -32,14 +33,17 @@ export function insert(
       return insertText(parentNode, current);
     }
     case isProperty(value): {
-      createReactiveNode(parentContext, value, (newContext) => {
-        current = insert(newContext, parentNode, value.get(), current);
-      });
-      return current;
+      return insertReactiveNode(
+        parentContext,
+        value,
+        current,
+        (newContext, newResult) =>
+          insert(newContext, parentNode, value.get(), newResult)
+      );
     }
     case value[Symbol.iterator] != null: {
       const normalizedBuffer: Element[] = [];
-      const reactiveBuffer = normalizeArray(
+      const reactiveBuffer = normalizeIterable(
         parentContext,
         isCurrentArray ? current : current ? [current] : [],
         normalizedBuffer,
@@ -48,19 +52,13 @@ export function insert(
       );
 
       if (reactiveBuffer.length > 0) {
-        createReactiveNode(
+        return insertReactiveNode(
           parentContext,
           merge(reactiveBuffer),
-          (newContext) =>
-            (current = insert(
-              newContext,
-              parentNode,
-              normalizedBuffer,
-              current,
-              true
-            ))
+          current,
+          (newContext, newResult) =>
+            insert(newContext, parentNode, normalizedBuffer, newResult, true)
         );
-        return current;
       }
 
       if (normalizedBuffer.length === 0) {
@@ -72,13 +70,17 @@ export function insert(
       }
 
       if (current) {
-        reconcileArrays(
-          parentNode,
-          isCurrentArray ? current : [current],
-          normalizedBuffer
-        );
+        if (current.nodeType !== 8) {
+          reconcileArrays(
+            parentNode,
+            isCurrentArray ? current : [current],
+            normalizedBuffer
+          );
+        } else {
+          current.replaceWith.apply(null, normalizedBuffer);
+        }
       } else {
-        parentNode.append.apply(parentNode, normalizedBuffer);
+        parentNode.append.apply(null, normalizedBuffer);
       }
       return normalizedBuffer;
     }
@@ -101,7 +103,7 @@ export function insert(
   }
 }
 
-function normalizeArray(
+function normalizeIterable(
   context: Context,
   current: Node[],
   buffer: Array<Node | Property<unknown>>,
@@ -120,7 +122,7 @@ function normalizeArray(
       idx++;
       buffer.push(item);
     } else if (t !== 'string' && item[Symbol.iterator]) {
-      normalizeArray(
+      normalizeIterable(
         context,
         current,
         buffer,
@@ -132,7 +134,7 @@ function normalizeArray(
     } else if (isProperty(item)) {
       if (unwrap) {
         item = item.get();
-        normalizeArray(
+        normalizeIterable(
           context,
           current,
           buffer,
