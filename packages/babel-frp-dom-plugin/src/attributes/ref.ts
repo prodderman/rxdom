@@ -5,7 +5,7 @@ import { ParsedAttributeName } from './name';
 import { AttributeValuePath } from './types';
 import { isJSXExpressionContainerPath } from '../utils';
 
-export type RefParsingResult = t.LVal | null;
+export type RefParsingResult = t.Identifier | null;
 
 export function parseRef(
   { key, name, namespace }: ParsedAttributeName,
@@ -15,14 +15,6 @@ export function parseRef(
     const expression = value.node.expression;
 
     if (t.isIdentifier(expression)) {
-      const binding = value.scope.getBinding(expression.name);
-
-      if (binding && !binding.hasValue) {
-        return expression;
-      }
-    }
-
-    if (t.isLVal(expression)) {
       return expression;
     }
   }

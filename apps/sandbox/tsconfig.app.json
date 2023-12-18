@@ -3,6 +3,7 @@
   "compilerOptions": {
     "outDir": "../../dist/out-tsc",
     "jsx": "preserve",
+    "strict": true,
     "jsxImportSource": "packages/runtime/src",
   },
   "exclude": [

@@ -7,8 +7,10 @@ type Dynamic<T> = Observable<unknown> & {
   get(): T;
 };
 type DynamicRecord<T> = {
-  [P in keyof T]: P extends 'children' ? T[P] : T[P] | Property<T[P]>;
+  [P in keyof T]: P extends 'children' | 'ref' ? T[P] : T[P] | Property<T[P]>;
 };
+
+type NoInfer<T> = T extends infer S ? S : never;
 
 export namespace JSX {
   type Element =
@@ -364,9 +366,15 @@ export namespace JSX {
     ): void;
   }
 
+  interface RefObject<T> {
+    current?: NoInfer<T>;
+  }
+
+  type Ref<T> = RefObject<T> | ((element: T) => void);
+
   interface DOMAttributes<T> {
     children?: Element;
-    ref?: T;
+    ref?: Ref<T>;
 
     onCopy?: EventHandler<T, ClipboardEvent>;
     onCut?: EventHandler<T, ClipboardEvent>;

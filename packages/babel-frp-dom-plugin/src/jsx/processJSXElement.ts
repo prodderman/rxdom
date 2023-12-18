@@ -208,7 +208,24 @@ function processAttributes(
       const identifier = parseRef(parsedName, value);
 
       if (identifier) {
-        expressions.push(t.assignmentExpression('=', identifier, nodeId));
+        const testExpression = t.binaryExpression(
+          '===',
+          t.unaryExpression('typeof', identifier),
+          t.stringLiteral('function')
+        );
+
+        const assignmentExpression = t.assignmentExpression(
+          '=',
+          t.memberExpression(identifier, t.identifier('current')),
+          nodeId
+        );
+        expressions.push(
+          t.conditionalExpression(
+            testExpression,
+            t.callExpression(identifier, [nodeId]),
+            assignmentExpression
+          )
+        );
       }
     } else {
       const result = parseAttribute(parsedName, value);

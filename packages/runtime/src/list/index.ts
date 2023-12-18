@@ -87,7 +87,7 @@ export function iterateList<T>(
       idx
     );
 
-    return continueWithContext(newContext, mapped); // TODO: context forwarding for properties
+    return continueWithContext(newContext, mapped); // TODO: recursively subscribe to properties
   }
 
   function subscribe(observer: Observer<unknown>) {

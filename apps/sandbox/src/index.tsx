@@ -1,11 +1,27 @@
-import { mount, withEffect, effect } from '@frp-dom/runtime';
+import { mount, withEffect, effect, JSX } from '@frp-dom/runtime';
 import { Atom } from '@frp-dom/data';
 import { Cond } from '@frp-dom/condition';
 import { Iterate } from '@frp-dom/enumerate';
-import { Property, map } from '@frp-dom/reactive-core';
+import { Property } from '@frp-dom/reactive-core';
+
 import './styles.css';
 
 const atom1 = (window.atom1 = Atom.new(false));
+
+const Child1 = ({ r }: { r: JSX.RefObject<HTMLDivElement> }) => {
+  return withEffect(
+    <div ref={r}>With Ref</div>,
+    effect(() => {
+      console.log(`Child1 mount`, r);
+      if (r.current) {
+        r.current.style.color = 'red';
+      }
+      return () => {
+        console.log(`Child1 unmount`, r);
+      };
+    })
+  );
+};
 
 const Child2 = ({ n }: { n: Property<number> }) => {
   return withEffect(
@@ -20,18 +36,13 @@ const Child2 = ({ n }: { n: Property<number> }) => {
 };
 
 const App = () => {
-  const generatorObject = (function* () {
-    yield 1;
-    yield 2;
-    yield 3;
-  })();
-
-  const dynamicGenerator = Atom.new(generatorObject);
+  const ref = {};
+  const dynamicGenerator = Atom.new([1, 2, 3]);
 
   return (
     <div>
       <button onclick={() => atom1.modify((v) => !v)}>toggle</button>
-
+      <Child1 r={ref} />
       <Cond
         if={atom1}
         then={
@@ -43,4 +54,4 @@ const App = () => {
 };
 
 const root = document.getElementById('root');
-mount(<App />, root);
+mount(<App />, root!);

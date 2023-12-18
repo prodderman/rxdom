@@ -8,6 +8,6 @@ pluginTester({
     moduleName: '@frp/runtime',
   },
   title: 'Convert JSX',
-  fixtures: path.join(__dirname, '__dom_fixtures__'),
+  fixtures: path.join(__dirname, 'dom-fixtures'),
   snapshot: true,
 });
