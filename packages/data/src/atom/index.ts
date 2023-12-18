@@ -1,4 +1,4 @@
-import { Property, newScheduler, newProperty } from '@frp-dom/reactive-core';
+import { type Property, newSubject, newProperty } from '@frp-dom/reactive-core';
 
 export interface Atom<A> extends Property<A> {
   set(value: A): void;
@@ -9,7 +9,7 @@ export interface Atom<A> extends Property<A> {
 }
 
 export function create<A>(value: A): Atom<A> {
-  const subject = newScheduler<A>(true);
+  const subject = newSubject<A>(true);
 
   const set = (newValue: A): void => {
     if (value !== newValue) {

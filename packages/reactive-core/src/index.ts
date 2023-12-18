@@ -1,4 +1,4 @@
-export { newScheduler, batch } from './subject';
+export { newSubject, batch, batchFn } from './subject';
 export {
   newProperty,
   isProperty,

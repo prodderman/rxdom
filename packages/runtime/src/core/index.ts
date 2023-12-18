@@ -5,6 +5,8 @@ export type Effect = Observable<never>;
 
 export type Context = Set<() => void>;
 
+export const contextForwardSymbol = Symbol('context');
+
 export function continueWithContext(context: Context, updater: unknown) {
   while (typeof updater === 'function') updater = updater(context);
   return updater as JSX.Element;
@@ -79,14 +81,14 @@ export function insertReactiveNode(
   parentContext: Context,
   observable: Observable<any>,
   result: any,
-  render: (context: Context, renderResult: any) => any
+  render: (context: Context, result: any) => any
 ): () => any {
   let alive = true;
-  const thisContext: Context = new Set();
+  const newContext: Context = new Set();
 
   const work = () => {
     if (alive) {
-      result = render(thisContext, result);
+      result = render(newContext, result);
     }
   };
 
@@ -94,7 +96,7 @@ export function insertReactiveNode(
   const subscription = observable.subscribe({
     next: () => {
       if (subscribed) {
-        disposeContext(thisContext); // TODO: need to be scheduled?
+        disposeContext(newContext); // TODO: needs to be scheduled?
         updateScheduler.schedule(work);
       }
     },
@@ -103,7 +105,7 @@ export function insertReactiveNode(
   parentContext.add(() => {
     alive = false;
     subscription.unsubscribe();
-    disposeContext(thisContext);
+    disposeContext(newContext);
   });
   subscribed = true;
 

@@ -11,7 +11,7 @@ import {
   type Subscription,
   subscriptionNever,
 } from '../observable';
-import { newScheduler } from '../subject';
+import { newSubject } from '../subject';
 
 const propertySymbol = Symbol('property');
 
@@ -72,7 +72,7 @@ export const combine = <Properties extends Property<unknown>[], Result>(
     return map(properties[0], project);
   }
 
-  const scheduler = newScheduler(false);
+  const scheduler = newSubject(false);
   const merged = merge(properties);
   const get = memoPropertiesProject(project, properties);
 

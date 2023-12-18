@@ -4,8 +4,9 @@ import {
   observerNever,
   subscribeOn,
 } from '@frp-dom/reactive-core';
+
 import {
-  Context,
+  type Context,
   continueWithContext,
   disposeContext,
   effectScheduler,
@@ -22,7 +23,7 @@ export function createComponent(
 
     if (isEffectful(result)) {
       if (result[1] === observableNever) {
-        return continueWithContext(parentContext, result[0]);
+        return result[0];
       }
 
       const thisContext: Context = new Set();
@@ -39,6 +40,6 @@ export function createComponent(
       return continueWithContext(thisContext, result[0]);
     }
 
-    return continueWithContext(parentContext, result);
+    return result;
   };
 }

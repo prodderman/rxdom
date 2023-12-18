@@ -1,72 +1,89 @@
-import { Property, newProperty } from '@frp-dom/reactive-core';
+import {
+  type Property,
+  type Observer,
+  newProperty,
+  newSubject,
+  batch,
+  batchFn,
+} from '@frp-dom/reactive-core';
 
 import type { JSX } from '../jsx-runtime';
 import { type Context, continueWithContext, disposeContext } from '../core';
-import { Observer } from 'packages/reactive-core/build';
 
-export function mapListByIndex<T>(
-  list: Property<T[]>,
+export function iterateList<T>(
+  list: Property<Iterable<T>>,
   project: (item: Property<T>, index: number) => JSX.Element
 ) {
-  let currentItems: T[] = [],
+  let currentItems: Iterable<T> = [],
     mapped: JSX.Element[] = [],
-    properties: Property<T>[] = [],
+    observers: Observer<T>[] = [],
     contexts: Context[] = [],
-    targetLength = 0,
-    idx: number;
+    currentLength = 0;
 
-  function get() {
+  const get = batchFn(() => {
     const newItems = list.get();
-    if (currentItems !== newItems) {
-      const newLength = newItems.length;
 
-      if (newLength === 0 && targetLength !== 0) {
-        for (idx = 0; idx < newLength; idx++) {
+    if (currentItems !== newItems) {
+      const newListIterator = newItems[Symbol.iterator]();
+      const currentListIterator = currentItems[Symbol.iterator]();
+      let newItem = newListIterator.next();
+
+      if (newItem.done) {
+        if (currentLength !== 0) {
+          for (const context of contexts) {
+            disposeContext(context);
+          }
+
+          currentItems = newItems;
+          contexts.length = observers.length = currentLength = 0;
+          mapped = [];
+        }
+      } else {
+        let idx = 0;
+        let newLength = 0;
+        let currentItem = currentListIterator.next();
+
+        do {
+          if (!currentItem.done && currentItem.value !== newItem.value) {
+            observers[idx].next(newItem.value);
+          } else if (idx >= currentLength) {
+            mapped[idx] = projectWithContext(idx, newItem.value);
+          }
+          idx++;
+          newLength++;
+          currentItem = currentListIterator.next();
+        } while (!(newItem = newListIterator.next()).done);
+
+        for (; idx < currentLength; idx++) {
           disposeContext(contexts[idx]);
         }
 
-        currentItems = newItems;
-        mapped = [];
-        targetLength = 0;
-        return mapped;
-      }
-
-      for (idx = 0; idx < newLength; idx++) {
-        if (idx >= currentItems.length) {
-          mapped[idx] = projectWithContext(idx);
+        if (currentLength !== newLength) {
+          currentLength = observers.length = contexts.length = newLength;
+          mapped = mapped.slice(0, currentLength);
         }
-      }
 
-      for (; idx < currentItems.length; idx++) {
-        disposeContext(contexts[idx]);
+        currentItems = newItems;
       }
-
-      if (currentItems.length !== newItems.length) {
-        targetLength = properties.length = newItems.length;
-        mapped = mapped.slice(0, targetLength);
-      }
-
-      currentItems = newItems;
-      return mapped;
     }
 
     return mapped;
-  }
+  });
 
-  function projectWithContext(idx: number) {
+  function projectWithContext(idx: number, value: T) {
     const newContext = (contexts[idx] = new Set());
-    const getByIndex = () => list.get()[idx];
+    const subject = (observers[idx] = newSubject());
+
     const mapped = project(
-      newProperty(getByIndex, (observer) => {
-        let last = getByIndex();
-        return list.subscribe({
-          next: () => {
-            if (last !== (last = getByIndex())) {
-              observer.next(last);
-            }
-          },
-        });
-      }),
+      newProperty(
+        () => value,
+        (observer) =>
+          subject.subscribe({
+            next(nextValue) {
+              observer.next((value = nextValue));
+            },
+          })
+      ),
       idx
     );
 
@@ -79,9 +96,7 @@ export function mapListByIndex<T>(
     return {
       unsubscribe() {
         subscription.unsubscribe();
-        for (const context of contexts) {
-          disposeContext(context);
-        }
+        for (const context of contexts) disposeContext(context);
         contexts.length = 0;
       },
     };

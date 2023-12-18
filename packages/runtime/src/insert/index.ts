@@ -16,91 +16,93 @@ export function insert(
 
   while ((t = typeof value) === 'function') value = value(parentContext);
 
-  switch (true) {
-    case t === 'string' || t === 'number' || t === 'bigint' || t === 'symbol': {
-      if (t !== 'string') value = value.toString();
-      if (isCurrentArray) {
-        return replaceChildrenWith(current, value);
-      }
-
-      return insertText(parentNode, current, value);
+  if (t === 'string' || t === 'number' || t === 'bigint' || t === 'symbol') {
+    if (t !== 'string') value = value.toString();
+    if (isCurrentArray) {
+      return replaceChildrenWith(current, value);
     }
-    case value == null || t === 'boolean': {
-      if (isCurrentArray) {
-        return replaceChildrenWith(current);
-      }
 
-      return insertText(parentNode, current);
+    return insertText(parentNode, current, value);
+  }
+
+  if (value == null || t === 'boolean') {
+    if (isCurrentArray) {
+      return replaceChildrenWith(current);
     }
-    case isProperty(value): {
+
+    return insertText(parentNode, current);
+  }
+
+  if (isProperty(value)) {
+    return insertReactiveNode(
+      parentContext,
+      value,
+      current,
+      function render(newContext, newResult) {
+        return insert(newContext, parentNode, value.get(), newResult);
+      }
+    );
+  }
+
+  if (value[Symbol.iterator]) {
+    const normalizedBuffer: Element[] = [];
+    const reactiveBuffer = normalizeIterable(
+      parentContext,
+      isCurrentArray ? current : current ? [current] : [],
+      normalizedBuffer,
+      value,
+      unwrap
+    );
+
+    if (reactiveBuffer.length > 0) {
       return insertReactiveNode(
         parentContext,
-        value,
+        merge(reactiveBuffer),
         current,
         (newContext, newResult) =>
-          insert(newContext, parentNode, value.get(), newResult)
+          insert(newContext, parentNode, normalizedBuffer, newResult, true)
       );
     }
-    case value[Symbol.iterator] != null: {
-      const normalizedBuffer: Element[] = [];
-      const reactiveBuffer = normalizeIterable(
-        parentContext,
-        isCurrentArray ? current : current ? [current] : [],
-        normalizedBuffer,
-        value,
-        unwrap
-      );
 
-      if (reactiveBuffer.length > 0) {
-        return insertReactiveNode(
-          parentContext,
-          merge(reactiveBuffer),
-          current,
-          (newContext, newResult) =>
-            insert(newContext, parentNode, normalizedBuffer, newResult, true)
-        );
-      }
-
-      if (normalizedBuffer.length === 0) {
-        if (isCurrentArray) {
-          return replaceChildrenWith(current);
-        } else {
-          return insertText(parentNode, current);
-        }
-      }
-
-      if (current) {
-        if (current.nodeType !== 8) {
-          reconcileArrays(
-            parentNode,
-            isCurrentArray ? current : [current],
-            normalizedBuffer
-          );
-        } else {
-          current.replaceWith.apply(null, normalizedBuffer);
-        }
-      } else {
-        parentNode.append.apply(null, normalizedBuffer);
-      }
-      return normalizedBuffer;
-    }
-    case value.nodeType !== undefined: {
+    if (normalizedBuffer.length === 0) {
       if (isCurrentArray) {
-        current = replaceChildrenWith(current, value);
-      }
-
-      if (current) {
-        current.replaceWith(value);
+        return replaceChildrenWith(current);
       } else {
-        parentNode.append(value);
+        return insertText(parentNode, current);
       }
-      return value;
     }
-    default: {
-      console.error(`WARNING: Unrecognized element`, value);
-      return current;
+
+    if (current) {
+      if (current.nodeType !== 8) {
+        reconcileArrays(
+          parentNode,
+          isCurrentArray ? current : [current],
+          normalizedBuffer
+        );
+      } else {
+        (current as Element).replaceWith(...normalizedBuffer);
+      }
+    } else {
+      parentNode.append.apply(parentNode, normalizedBuffer);
     }
+    return normalizedBuffer;
   }
+
+  if (value.nodeType) {
+    if (isCurrentArray) {
+      current = replaceChildrenWith(current, value);
+    }
+
+    if (current) {
+      current.replaceWith(value);
+    } else {
+      parentNode.append(value);
+    }
+    return value;
+  }
+
+  console.error(`WARNING: Unrecognized element`, value);
+  return current;
 }
 
 function normalizeIterable(
@@ -121,7 +123,7 @@ function normalizeIterable(
     } else if (t === 'object' && item.nodeType) {
       idx++;
       buffer.push(item);
-    } else if (t !== 'string' && item[Symbol.iterator]) {
+    } else if (t !== 'string' && item?.[Symbol.iterator]) {
       normalizeIterable(
         context,
         current,
@@ -138,7 +140,7 @@ function normalizeIterable(
           context,
           current,
           buffer,
-          (t = typeof item) !== 'string' && item[Symbol.iterator]
+          (t = typeof item) !== 'string' && item?.[Symbol.iterator]
             ? item
             : [item],
           false,

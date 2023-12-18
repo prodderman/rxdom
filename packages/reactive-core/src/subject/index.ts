@@ -23,7 +23,13 @@ export function batch<A>(fn: () => A): A {
   return result;
 }
 
-export function newScheduler<A = any>(source: boolean = false): Subject<A> {
+export function batchFn<A>(fn: () => A): () => A {
+  return function bachedFn() {
+    return batch(fn);
+  };
+}
+
+export function newSubject<A = any>(source: boolean = false): Subject<A> {
   const listeners = new Set<Observer<A>>();
   const pendingListeners = new Set<Observer<A>>();
   let subscriptionCount = 0;

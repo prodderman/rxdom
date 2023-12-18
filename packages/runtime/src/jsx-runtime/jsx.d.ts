@@ -13,7 +13,7 @@ type DynamicRecord<T> = {
 export namespace JSX {
   type Element =
     | Node
-    | ArrayElement
+    | IterableElement
     | EffectfulElement
     | FunctionElement
     | DynamicElement
@@ -23,7 +23,7 @@ export namespace JSX {
     | null
     | undefined;
   interface EffectfulElement extends Effectful<Element> {}
-  interface ArrayElement extends Array<Element> {}
+  interface IterableElement extends Iterable<Element> {}
   interface DynamicElement extends Dynamic<Element> {}
   interface ElementChildrenAttribute {
     children: {};
@@ -707,6 +707,13 @@ export namespace JSX {
     target?: string;
     acceptCharset?: string;
     noValidate?: boolean;
+  }
+
+  interface StyleHTMLAttributes<T> extends HTMLAttributes<T> {
+    media?: string;
+    nonce?: string;
+    scoped?: boolean;
+    type?: string;
   }
 
   type CSSWideKeyword = 'initial' | 'inherit' | 'unset';
@@ -2226,12 +2233,12 @@ export namespace JSX {
     source: {};
     span: DynamicRecord<HTMLAttributes<HTMLSpanElement>>;
     strong: {};
-    style: {};
-    sub: {};
-    summary: {};
-    sup: {};
-    table: {};
-    tbody: {};
+    style: DynamicRecord<StyleHTMLAttributes<HTMLStyleElement>>;
+    sub: DynamicRecord<HTMLAttributes<HTMLElement>>;
+    summary: DynamicRecord<HTMLAttributes<HTMLElement>>;
+    sup: DynamicRecord<HTMLAttributes<HTMLElement>>;
+    table: DynamicRecord<HTMLAttributes<HTMLTableElement>>;
+    tbody: DynamicRecord<HTMLAttributes<HTMLTableSectionElement>>;
     td: DynamicRecord<HTMLAttributes<HTMLTableCellElement>>;
     template: {};
     textarea: {};
@@ -2242,11 +2249,11 @@ export namespace JSX {
     title: DynamicRecord<HTMLAttributes<HTMLTitleElement>>;
     tr: DynamicRecord<HTMLAttributes<HTMLTableRowElement>>;
     track: {};
-    u: {};
-    ul: {};
-    var: {};
-    video: {};
-    wbr: {};
+    u: DynamicRecord<HTMLAttributes<HTMLElement>>;
+    ul: DynamicRecord<HTMLAttributes<HTMLUListElement>>;
+    var: DynamicRecord<HTMLAttributes<HTMLElement>>;
+    video: DynamicRecord<VideoHTMLAttributes<HTMLVideoElement>>;
+    wbr: DynamicRecord<HTMLAttributes<HTMLElement>>;
   }
 
   interface IntrinsicElements extends HTMLElementTags {}
